@@ -75,7 +75,12 @@ export default function AccountsScreen() {
 
   return (
     <View style={[styles.container, insets]}>
-      <Text style={styles.title}>Accounts</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Accounts</Text>
+        <Pressable onPress={() => router.push('/(app)/transactions')}>
+          <Text style={styles.headerLink}>Transactions</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>Total Balance</Text>
@@ -192,6 +197,17 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     flex: 1,
+  },
+  headerLink: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    marginTop: spacing.lg,
   },
   listContent: {
     gap: spacing.sm,
