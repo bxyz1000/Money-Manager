@@ -22,12 +22,6 @@ function amountColor(type: string): string {
   return colors.accentBright;
 }
 
-function typeBadge(type: string): string {
-  if (type === 'income') return '↓';
-  if (type === 'expense') return '↑';
-  return '↔';
-}
-
 interface TransactionRowProps {
   txn: TransactionListItem;
   onPress?: () => void;
@@ -48,27 +42,35 @@ export function TransactionRow({ txn, onPress, disabled }: TransactionRowProps) 
       accessibilityLabel={`${txn.type} ${formatPaiseAsINR(txn.amountPaise)} on ${title}`}
       accessibilityRole="button"
     >
-      <View style={[styles.badge, { borderColor: amountColor(txn.type) }]}>
-        <Text style={[styles.badgeText, { color: amountColor(txn.type) }]}>
-          {typeBadge(txn.type)}
-        </Text>
-      </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {txn.type === 'transfer' ? txn.accountName : txn.accountName}
+          {txn.accountName}
           {!!txn.note ? ` · ${txn.note}` : ''}
         </Text>
         <Text style={styles.date}>{new Date(txn.occurredAt).toLocaleDateString()}</Text>
+        <Text style={[styles.amount, { color: amountColor(txn.type) }]}>
+          {amountPrefix(txn.type)}
+          {formatPaiseAsINR(txn.amountPaise)}
+        </Text>
       </View>
-      <Text style={[styles.amount, { color: amountColor(txn.type) }]}>
-        {amountPrefix(txn.type)}
-        {formatPaiseAsINR(txn.amountPaise)}
-      </Text>
+      <View style={[styles.badge, { borderColor: amountColor(txn.type) }]}>
+        <Text style={[styles.badgeText, { color: amountColor(txn.type) }]}>
+          {badgeGlyph(txn.categoryName ?? txn.type)}
+        </Text>
+      </View>
     </Pressable>
   );
+}
+
+/** Single-character badge: category initial when present, else flow glyph. */
+function badgeGlyph(source: string): string {
+  if (source === 'income') return '↓';
+  if (source === 'expense') return '↑';
+  if (source === 'transfer') return '↔';
+  return source.charAt(0).toUpperCase();
 }
 
 const styles = StyleSheet.create({

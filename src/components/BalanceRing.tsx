@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 
-import { colors, typography } from './theme';
+import { colors, glass, radius, spacing, typography } from './theme';
 
 /**
  * Luminous balance ring — the dashboard's financial instrument.
@@ -96,13 +96,13 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
           toValue: 1,
           duration: 3000,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false,
+          useNativeDriver: false, // SVG animated nodes are JS-driven
         }),
         Animated.timing(breathe, {
           toValue: 0,
           duration: 3000,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false,
+          useNativeDriver: false, // SVG animated nodes are JS-driven
         }),
       ]),
     );
@@ -152,9 +152,15 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
               <Stop offset="0" stopColor={colors.ringHighlight} stopOpacity="0.9" />
               <Stop offset="1" stopColor={colors.accentBright} stopOpacity="0.4" />
             </LinearGradient>
+            <RadialGradient id="haloGradient" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor={colors.ringGlowInner} stopOpacity="0.4" />
+              <Stop offset="0.7" stopColor={colors.ringGlowOuter} stopOpacity="0.22" />
+              <Stop offset="1" stopColor={colors.ringGlowOuter} stopOpacity="0" />
+            </RadialGradient>
           </Defs>
 
-          {/* Atmospheric under-glow disc */}
+          {/* Atmospheric bloom halo behind the ring */}
+          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.85} fill="url(#haloGradient)" />
           <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill="rgba(93,110,255,0.05)" />
 
           {/* Dark track */}
@@ -229,6 +235,12 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
           <Text style={styles.centerAmount}>{countText}</Text>
         </View>
       </View>
+
+      {/* Savings-rate glass chip (real data: month net / month income) */}
+      <View style={[styles.rateChip, glass.card]} pointerEvents="none">
+        <Text style={styles.rateChipValue}>{Math.round(clamped * 100)}% saved</Text>
+        <Text style={styles.rateChipCaption}>this month</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -263,6 +275,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
+  },
+  rateChip: {
+    alignItems: 'center',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm,
+    position: 'absolute',
+    right: -6,
+    top: 18,
+  },
+  rateChipCaption: {
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  rateChipValue: {
+    color: colors.accentBright,
+    fontSize: 13,
+    fontWeight: '700',
   },
   wrapper: {
     alignItems: 'center',

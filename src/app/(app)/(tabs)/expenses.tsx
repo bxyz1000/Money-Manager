@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { TransactionRow } from '@/components/TransactionRow';
+import { FlowRibbon } from '@/components/FlowRibbon';
 import { colors, glass, radius, spacing } from '@/components/theme';
 import {
   filterTransactions,
@@ -72,6 +73,7 @@ export default function ExpensesScreen() {
 // PART2_END
   return (
     <View style={[styles.container, insets]}>
+      <FlowRibbon width="100%" height="100%" opacity={0.85} />
       <Text style={styles.title}>Expenses</Text>
 
       <View style={styles.summaryCard}>

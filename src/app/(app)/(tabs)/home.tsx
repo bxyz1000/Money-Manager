@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BalanceRing } from '@/components/BalanceRing';
+import { FlowRibbon } from '@/components/FlowRibbon';
 import { TransactionRow } from '@/components/TransactionRow';
 import { colors, glass, radius, spacing, typography } from '@/components/theme';
 import {
@@ -73,11 +74,13 @@ export default function HomeScreen() {
 
 // PART1_END
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, insets]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.root}>
+      <FlowRibbon width="100%" height="100%" flip opacity={0.45} />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, insets]}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.headerRow}>
         <Pressable
           accessibilityLabel="Profile"
@@ -145,7 +148,8 @@ export default function HomeScreen() {
           ))
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -178,13 +182,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
     flex: 1,
   },
   content: {
     paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+  },
+  root: {
+    backgroundColor: colors.background,
+    flex: 1,
   },
   emptyText: {
     color: colors.textSecondary,
