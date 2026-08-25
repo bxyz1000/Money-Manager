@@ -34,7 +34,7 @@ export default function LoginScreen() {
   // Already signed in (restored session or just completed a flow): leave the
   // auth area. Declarative redirect renders nothing else while active.
   if (status === 'authenticated') {
-    return <Redirect href="/(app)/home" />;
+    return <Redirect href="/(app)/accounts" />;
   }
 
   async function run(action: () => Promise<void>, successMessage?: string) {

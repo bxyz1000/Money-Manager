@@ -52,12 +52,19 @@ transfers by construction.
 PostgreSQL (Supabase) is authoritative. SQLite will be an offline cache +
 write queue only — never a second source of truth.
 
+**Offline boundary (Phase 3 status):** the SQLite layer is NOT yet
+implemented. Accounts CRUD is Supabase-backed directly through
+`src/features/accounts/account.service.ts`. When the sync phase arrives it
+will wrap these repository functions; store/UI contracts will not change.
+Real tenant-isolation (RLS) testing happens against Postgres/Supabase — not
+in TypeScript unit tests.
+
 ## Layers
 
 ```
 UI (src/app, features/*/screens)  →  no Supabase/SQLite imports
 stores/hooks                      →  state only
-services                          →  auth, sync, external APIs
+features/*/service                →  repositories owning Supabase access
 database                          →  SQLite repositories (future)
 config                            →  env validation, constants
 types                             →  domain model mirroring SQL schema
