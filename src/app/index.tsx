@@ -10,7 +10,7 @@ export default function IndexRedirect() {
   const status = useSessionStore((state) => state.status);
 
   if (status === 'authenticated') {
-    return <Redirect href="/(app)/accounts" />;
+    return <Redirect href="/(app)/(tabs)/home" />;
   }
   return <Redirect href="/(auth)/login" />;
 }

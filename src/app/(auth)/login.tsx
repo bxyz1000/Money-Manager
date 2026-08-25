@@ -34,7 +34,7 @@ export default function LoginScreen() {
   // Already signed in (restored session or just completed a flow): leave the
   // auth area. Declarative redirect renders nothing else while active.
   if (status === 'authenticated') {
-    return <Redirect href="/(app)/accounts" />;
+    return <Redirect href="/(app)/(tabs)/home" />;
   }
 
   async function run(action: () => Promise<void>, successMessage?: string) {
@@ -146,18 +146,18 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   error: {
-    color: '#b3261e',
+    color: '#ff5c7a',
     marginBottom: 8,
   },
   google: {
-    backgroundColor: '#5f6368',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   info: {
-    color: '#1b72e8',
+    color: '#8f9dff',
     marginBottom: 8,
   },
   input: {
-    borderColor: '#c9c9c9',
+    borderColor: 'rgba(255,255,255,0.14)',
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 10,
@@ -165,10 +165,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   primary: {
-    backgroundColor: '#1b72e8',
+    backgroundColor: '#6d7cff',
   },
   secondary: {
-    backgroundColor: '#188038',
+    backgroundColor: '#2f9e6e',
   },
   spinner: {
     marginTop: 12,

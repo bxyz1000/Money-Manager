@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   balanceLabel: {
-    color: '#d6e7ff',
+    color: '#9aa3b8',
     fontSize: 13,
   },
   balanceValue: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorBox: {
-    backgroundColor: '#fdeceb',
+    backgroundColor: 'rgba(255,92,122,0.12)',
     borderRadius: radius.sm,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,

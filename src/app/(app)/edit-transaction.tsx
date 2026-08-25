@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorBox: {
-    backgroundColor: '#fdeceb',
+    backgroundColor: 'rgba(255,92,122,0.12)',
     borderRadius: radius.sm,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,

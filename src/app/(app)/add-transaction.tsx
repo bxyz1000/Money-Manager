@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -44,13 +44,20 @@ function todayIsoDate(): string {
 export default function AddTransactionScreen() {
   const router = useRouter();
   const insets = useScreenInsets();
+  const params = useLocalSearchParams<{ type?: string }>();
+
+  // Home quick actions pass ?type=income|expense|transfer to preselect.
+  const initialType: TransactionType =
+    params.type === 'income' || params.type === 'expense' || params.type === 'transfer'
+      ? params.type
+      : 'expense';
 
   const accounts = useAccountsStore((state) => state.accounts);
   const accountsStatus = useAccountsStore((state) => state.status);
   const loadAccounts = useAccountsStore((state) => state.load);
   const createTransaction = useTransactionsStore((state) => state.createTransaction);
 
-  const [type, setType] = useState<TransactionType>('expense');
+  const [type, setType] = useState<TransactionType>(initialType);
   const [amountText, setAmountText] = useState('');
   const [accountId, setAccountId] = useState<string | null>(null);
   const [toAccountId, setToAccountId] = useState<string | null>(null);
@@ -335,7 +342,7 @@ const styles = StyleSheet.create({
     marginTop: -spacing.xs,
   },
   formErrorBox: {
-    backgroundColor: '#fdeceb',
+    backgroundColor: 'rgba(255,92,122,0.12)',
     borderColor: colors.danger,
     borderRadius: radius.sm,
     borderWidth: 1,

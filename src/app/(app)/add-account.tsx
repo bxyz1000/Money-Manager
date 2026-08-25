@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginTop: -spacing.xs,
   },
   formErrorBox: {
-    backgroundColor: '#fdeceb',
+    backgroundColor: 'rgba(255,92,122,0.12)',
     borderColor: colors.danger,
     borderRadius: radius.sm,
     borderWidth: 1,
