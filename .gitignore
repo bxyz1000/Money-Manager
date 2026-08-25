@@ -38,6 +38,9 @@ yarn-error.*
 # npm install logs (transient)
 npm-install*.log
 
+# Supabase CLI local state (link metadata, caches) — not secrets, but machine-local
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 
