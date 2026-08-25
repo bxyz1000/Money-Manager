@@ -1,27 +1,25 @@
 workflows:
-  android-development:
-    name: Money Manager Android Development Build
+  android-apk:
+    name: Money Manager Android APK
 
     environment:
       node: 20.19.0
       java: 17
-      vars:
-        EXPO_NO_DOCTOR: "1"
 
     scripts:
       - name: Install dependencies
         script: |
           npm ci
 
-      - name: Install EAS CLI
+      - name: Generate Android project
         script: |
-          npm install -g eas-cli
+          npx expo prebuild --platform android --non-interactive
 
-      - name: Build Android development APK
+      - name: Build APK
         script: |
-          eas build --platform android --profile development --non-interactive
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
     artifacts:
-      - "*.apk"
-      - "build/**/*.apk"
-      - "android/**/*.apk"
+      - android/app/build/outputs/apk/debug/app-debug.apk
