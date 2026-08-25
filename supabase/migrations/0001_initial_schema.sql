@@ -22,6 +22,14 @@
 --   Transfers are excluded from expense aggregation by construction: any
 --   expense total is SUM(amount_paise) WHERE type = 'expense'.
 --
+-- OPENING BALANCE:
+--   Accounts carry initial_balance_paise (BIGINT >= 0) for money already
+--   present when the user sets up the app. It is an attribute of the
+--   ACCOUNT, not a transaction: it never appears as monthly income, never
+--   appears as an expense, and simply seeds the derived balance:
+--     balance = initial_balance + income - expenses
+--               - outgoing transfers + incoming transfers
+--
 -- MULTI-TENANCY / SECURITY:
 --   Row Level Security is ENABLED AND FORCED on every user-owned table.
 --   Every policy is exactly: auth.uid() = user_id. The anon/authenticated
@@ -95,6 +103,12 @@ create table public.accounts (
   name          text not null check (length(btrim(name)) between 1 and 80),
   type          text not null check (type in ('bank', 'upi', 'cash')),
   currency_code text not null default 'INR' check (currency_code = 'INR'),
+
+  -- Opening balance (money already in the account at setup). Stored on the
+  -- account itself — deliberately NOT an income transaction, so it never
+  -- pollutes income/expense reporting.
+  initial_balance_paise bigint not null default 0 check (initial_balance_paise >= 0),
+
   is_archived   boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -195,7 +209,9 @@ with (security_invoker = true) as
 select
   a.id as account_id,
   a.user_id,
-  coalesce(sum(
+  -- Opening balance is an account attribute; ledger deltas are added on top.
+  a.initial_balance_paise
+  + coalesce(sum(
     case
       when t.type = 'income'   and t.account_id = a.id then  t.amount_paise
       when t.type = 'expense'  and t.account_id = a.id then -t.amount_paise
@@ -348,6 +364,6 @@ comment on table public.transactions is
   'Ledger of income/expense/transfer. Transfers carry both legs in one atomic row (account_id = source, to_account_id = destination); they are never expenses and preserve total net worth.';
 
 comment on view public.account_balances is
-  'Derived per-account balances in paise. Never persisted; recomputed from the ledger so they cannot be corrupted by partial writes.';
+  'Derived per-account balances in paise: initial_balance_paise plus signed ledger deltas (income up, expenses down, transfers out/in). Never persisted; recomputed from the ledger so they cannot be corrupted by partial writes.';
 
 

@@ -15,6 +15,24 @@ exact representation across all three layers.
 from strings; rounding is never implicit; `paiseToDecimalRupees()` output is
 display-only.
 
+## Balances — DECIDED
+
+Balances are always derived, never stored:
+
+```
+balance = initial_balance_paise        -- opening balance on the ACCOUNT,
+          + income                     -- never an income transaction
+          - expenses
+          - outgoing transfers
+          + incoming transfers
+```
+
+The opening balance is an attribute of the account row (`accounts.initial_
+balance_paise`), so it cannot leak into income/expense reporting. The SQL
+definition lives in the `account_balances` view; the TypeScript mirror used
+by clients/tests lives in `src/features/accounts/balance.ts` — keep them in
+sync.
+
 ## Transfer model — DECIDED
 
 A transfer is a **single atomic row** in `transactions`:

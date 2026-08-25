@@ -49,6 +49,13 @@ export interface Account {
   name: string;
   type: AccountType;
   currencyCode: 'INR';
+  /**
+   * Opening balance in paise (>= 0): money already in the account when the
+   * user set it up. Stored on the account, NOT as an income transaction —
+   * it never appears as monthly income or expense. The derived balance is:
+   * initialBalancePaise + income - expenses - outgoingTransfers + incomingTransfers.
+   */
+  initialBalancePaise: Paise;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
