@@ -330,35 +330,73 @@ create index idx_ai_insights_user_created
   on public.ai_insights (user_id, created_at desc);
 
 -- ===========================================================================
--- ROW LEVEL SECURITY — every user-owned table, enabled AND forced.
--- Policy shape is identical everywhere: auth.uid() = user_id.
+-- ROW LEVEL SECURITY — every user-owned table, ENABLED and FORCED.
+--
+-- Written explicitly per table (no generic loop): public.users is owned via
+-- its primary key `id` (it mirrors auth.users), while every other table is
+-- owned via `user_id`. A loop assuming a single ownership column caused
+-- ERROR 42703 ("column user_id does not exist") on the first attempt.
+--
+-- Policy strength is unchanged: one FOR ALL policy per table, applied to the
+-- USING (read/update/delete) and WITH CHECK (insert/update) sides alike.
+-- The composite foreign keys above remain the structural second layer.
 -- ===========================================================================
 
-do $$
-declare
-  tbl text;
-begin
-  foreach tbl in array array[
-    'users',
-    'accounts',
-    'categories',
-    'transactions',
-    'recurring_payments',
-    'savings_goals',
-    'monthly_summaries',
-    'ai_insights'
-  ]
-  loop
-    execute format('alter table public.%I enable row level security;', tbl);
-    execute format('alter table public.%I force row level security;', tbl);
-    execute format(
-      'create policy %I on public.%I for all using (auth.uid() = user_id) with check (auth.uid() = user_id);',
-      tbl || '_owner_all',
-      tbl
-    );
-  end loop;
-end;
-$$;
+alter table public.users enable row level security;
+alter table public.users force row level security;
+create policy users_owner_all on public.users
+  for all
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
+alter table public.accounts enable row level security;
+alter table public.accounts force row level security;
+create policy accounts_owner_all on public.accounts
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.categories enable row level security;
+alter table public.categories force row level security;
+create policy categories_owner_all on public.categories
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.transactions enable row level security;
+alter table public.transactions force row level security;
+create policy transactions_owner_all on public.transactions
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.recurring_payments enable row level security;
+alter table public.recurring_payments force row level security;
+create policy recurring_payments_owner_all on public.recurring_payments
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.savings_goals enable row level security;
+alter table public.savings_goals force row level security;
+create policy savings_goals_owner_all on public.savings_goals
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.monthly_summaries enable row level security;
+alter table public.monthly_summaries force row level security;
+create policy monthly_summaries_owner_all on public.monthly_summaries
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+alter table public.ai_insights enable row level security;
+alter table public.ai_insights force row level security;
+create policy ai_insights_owner_all on public.ai_insights
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 comment on table public.transactions is
   'Ledger of income/expense/transfer. Transfers carry both legs in one atomic row (account_id = source, to_account_id = destination); they are never expenses and preserve total net worth.';
