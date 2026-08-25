@@ -1,24 +1,16 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
+
+import { useSessionStore } from '@/stores/session.store';
 
 /**
- * Temporary bootstrap route. Intentionally NOT a product screen —
- * navigation structure and real screens arrive with feature work.
+ * Entry route: forwards to the correct area once the session state is known.
+ * The root layout guarantees status is never 'initializing' here.
  */
-export default function BootstrapRoute() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Money Manager — foundation initialized</Text>
-    </View>
-  );
-}
+export default function IndexRedirect() {
+  const status = useSessionStore((state) => state.status);
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 16,
-  },
-});
+  if (status === 'authenticated') {
+    return <Redirect href="/(app)/home" />;
+  }
+  return <Redirect href="/(auth)/login" />;
+}
