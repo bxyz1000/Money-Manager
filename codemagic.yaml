@@ -5,6 +5,8 @@ workflows:
     environment:
       node: 20.19.0
       java: 17
+      groups:
+        - money-manager-env
 
     scripts:
       - name: Install dependencies

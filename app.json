@@ -8,9 +8,15 @@
     "userInterfaceStyle": "dark",
     "scheme": "money-manager",
     "newArchEnabled": true,
+
+    "experiments": {
+      "typedRoutes": true
+    },
+
     "ios": {
       "supportsTablet": true
     },
+
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -20,9 +26,11 @@
       },
       "predictiveBackGestureEnabled": false
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
       "expo-router",
       "expo-secure-store",
