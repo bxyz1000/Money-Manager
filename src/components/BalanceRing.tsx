@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   Easing,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -15,13 +14,14 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { colors, glass, radius, shadowElevation, spacing, typography } from './theme';
+import { GlassButton, GlassCard } from './GlassCard';
+import { colors, radius, spacing, typography } from './theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const SIZE = 248;
-const STROKE_WIDTH = 14;
-const RADIUS = (SIZE - STROKE_WIDTH * 2 - 28) / 2;
+const SIZE = 240;
+const STROKE_WIDTH = 12;
+const RADIUS = (SIZE - STROKE_WIDTH * 2 - 24) / 2;
 const CENTER = SIZE / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -39,7 +39,6 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
 
   const [sweep] = useState(() => new Animated.Value(0));
   const [breathe] = useState(() => new Animated.Value(0));
-  const [spin] = useState(() => new Animated.Value(0));
   const [entrance] = useState(() => new Animated.Value(0));
   const [counter] = useState(() => new Animated.Value(0));
 
@@ -61,7 +60,7 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
     });
     const popIn = Animated.timing(entrance, {
       toValue: 1,
-      duration: 900,
+      duration: 800,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     });
@@ -85,19 +84,19 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
     };
   }, [clamped, counter, sweep, entrance, targetRupees]);
 
-  // Continuous pulsating breathing loop
+  // Gentle breathing glow loop
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, {
           toValue: 1,
-          duration: 2600,
+          duration: 3000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: false,
         }),
         Animated.timing(breathe, {
           toValue: 0,
-          duration: 2600,
+          duration: 3000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: false,
         }),
@@ -107,20 +106,6 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
     return () => loop.stop();
   }, [breathe]);
 
-  // Continuous rotating vortex aura
-  useEffect(() => {
-    const spinLoop = Animated.loop(
-      Animated.timing(spin, {
-        toValue: 1,
-        duration: 12000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    spinLoop.start();
-    return () => spinLoop.stop();
-  }, [spin]);
-
   const dashOffset = sweep.interpolate({
     inputRange: [0, 1],
     outputRange: [CIRCUMFERENCE, CIRCUMFERENCE * (1 - clamped)],
@@ -128,22 +113,17 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
 
   const outerGlowOpacity = breathe.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.45, 0.9],
+    outputRange: [0.35, 0.70],
   });
 
   const auraScale = breathe.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.05],
-  });
-
-  const spinRotation = spin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: [1, 1.04],
   });
 
   const cardTranslateY = entrance.interpolate({
     inputRange: [0, 1],
-    outputRange: [20, 0],
+    outputRange: [16, 0],
   });
 
   return (
@@ -157,7 +137,7 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
         clamped * 100,
       )} percent.`}
     >
-      {/* Background Hyper-Glow Atmospheric Flare */}
+      {/* Soft Glow Ambient Circle */}
       <Animated.View
         style={[
           styles.ambientGlow,
@@ -168,57 +148,27 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
         ]}
       />
 
-      {/* Continuous Rotating Aura Layer */}
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          styles.rotatingAuraContainer,
-          { transform: [{ rotate: spinRotation }] },
-        ]}
-      >
-        <Svg width={SIZE} height={SIZE}>
-          <Defs>
-            <RadialGradient id="rotatingFlare" cx="0.8" cy="0.2" r="0.6">
-              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="0.45" />
-              <Stop offset="0.6" stopColor={colors.neonBlue} stopOpacity="0.2" />
-              <Stop offset="1" stopColor="transparent" stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.55} fill="url(#rotatingFlare)" />
-        </Svg>
-      </Animated.View>
-
-      {/* Main Multi-Layer SVG Instrument */}
+      {/* Luminous Glowing Ring (Reference 1 Style) */}
       <Animated.View style={{ transform: [{ scale: auraScale }] }}>
         <Svg width={SIZE} height={SIZE}>
           <Defs>
-            {/* Primary Electric Cyan Gradient */}
-            <LinearGradient id="electricCyanGrad" x1="0" y1="0" x2="1" y2="1">
+            <LinearGradient id="cyanArcGrad" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="1" />
-              <Stop offset="0.4" stopColor={colors.skyGlow} stopOpacity="1" />
-              <Stop offset="0.85" stopColor={colors.neonBlue} stopOpacity="1" />
-              <Stop offset="1" stopColor="#0038a8" stopOpacity="0.8" />
+              <Stop offset="0.5" stopColor={colors.skyGlow} stopOpacity="1" />
+              <Stop offset="1" stopColor={colors.neonBlue} stopOpacity="0.9" />
             </LinearGradient>
 
-            {/* Specular White Arc Highlight */}
-            <LinearGradient id="specularHighlight" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
-              <Stop offset="0.4" stopColor={colors.electricCyan} stopOpacity="0.8" />
-              <Stop offset="1" stopColor="transparent" stopOpacity="0" />
-            </LinearGradient>
-
-            {/* Hyper-Luminous Bloom Halo */}
-            <RadialGradient id="innerBloom" cx="0.5" cy="0.5" r="0.5">
-              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="0.32" />
-              <Stop offset="0.6" stopColor={colors.neonBlue} stopOpacity="0.18" />
+            <RadialGradient id="softRingGlow" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="0.25" />
+              <Stop offset="0.6" stopColor={colors.neonBlue} stopOpacity="0.12" />
               <Stop offset="1" stopColor="transparent" stopOpacity="0" />
             </RadialGradient>
           </Defs>
 
-          {/* Atmospheric bloom circle */}
-          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.6} fill="url(#innerBloom)" />
+          {/* Diffused inner ring glow */}
+          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.4} fill="url(#softRingGlow)" />
 
-          {/* Dark Glass Track Ring */}
+          {/* Dark Glass Ring Track */}
           <Circle
             cx={CENTER}
             cy={CENTER}
@@ -228,13 +178,13 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
             fill="none"
           />
 
-          {/* Outer Wide Cyan Neon Aura (Breathing) */}
+          {/* Outer Soft Cyan Glow (Sinusoidal breathing) */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
             stroke={colors.neonBlue}
-            strokeWidth={STROKE_WIDTH + 24}
+            strokeWidth={STROKE_WIDTH + 14}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -242,40 +192,13 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
             opacity={outerGlowOpacity}
           />
 
-          {/* Medium Electric Cyan Glow */}
+          {/* Core Electric Cyan Arc */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke={colors.electricCyan}
-            strokeWidth={STROKE_WIDTH + 10}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
-            opacity={0.8}
-          />
-
-          {/* Core Luminous Arc */}
-          <AnimatedCircle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            stroke="url(#electricCyanGrad)"
+            stroke="url(#cyanArcGrad)"
             strokeWidth={STROKE_WIDTH}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
-          />
-
-          {/* Specular White Razor Edge */}
-          <AnimatedCircle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            stroke="url(#specularHighlight)"
-            strokeWidth={4.5}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -284,42 +207,40 @@ export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingPr
         </Svg>
       </Animated.View>
 
-      {/* Center Balance Value & Caption */}
+      {/* Center Amount & Caption (Medium/Regular weight per reference) */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <View style={styles.centerContent}>
           <Text style={styles.centerAmount}>{countText}</Text>
-          <Text style={styles.centerCaption}>Wallet Balance</Text>
+          <Text style={styles.centerCaption}>WALLET BALANCE</Text>
         </View>
       </View>
 
-      {/* Floating Savings Rate Glass Chip (Top-Right) */}
-      <View style={[styles.rateChip, glass.cardStrong, shadowElevation(2)]} pointerEvents="none">
+      {/* Floating Frosted Glass Percentage Chip (Top-Right) */}
+      <GlassCard style={styles.rateChip} intensity={55} borderRadius={radius.sm}>
         <Text style={styles.rateChipValue}>{Math.round(clamped * 100)}% saved</Text>
         <Text style={styles.rateChipCaption}>last 30 days</Text>
-      </View>
+      </GlassCard>
 
-      {/* Nestled + Add Pill Button at Bottom Center (Reference Style) */}
+      {/* Frosted Glass + Add Button (Bottom-Center, Reference Shape) */}
       {onAddPress && (
-        <Pressable
-          style={({ pressed }) => [
-            styles.addPill,
-            glass.cardStrong,
-            shadowElevation(3),
-            pressed && styles.addPillPressed,
-          ]}
+        <GlassButton
+          style={styles.addButton}
+          intensity={60}
+          borderRadius={radius.sm + 2}
           onPress={onAddPress}
           accessibilityLabel="Add transaction"
-          accessibilityRole="button"
         >
-          <Text style={styles.addPillIcon}>+</Text>
-          <Text style={styles.addPillText}>Add</Text>
-        </Pressable>
+          <View style={styles.addButtonContent}>
+            <Text style={styles.addButtonIcon}>+</Text>
+            <Text style={styles.addButtonText}>Add</Text>
+          </View>
+        </GlassButton>
       )}
     </Animated.View>
   );
 }
 
-/** Lightweight Indian-grouped rupee formatting for the animated counter. */
+/** Indian-grouped rupee formatting for the animated counter. */
 function formatRupeeGrouped(rupees: number): string {
   const negative = rupees < 0;
   const abs = Math.abs(rupees);
@@ -333,56 +254,47 @@ function formatRupeeGrouped(rupees: number): string {
 }
 
 const styles = StyleSheet.create({
-  addPill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
-    borderColor: colors.specularBorderTop,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    bottom: 2,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 8,
+  addButton: {
+    bottom: -6,
     position: 'absolute',
     zIndex: 10,
   },
-  addPillIcon: {
+  addButtonContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 9,
+  },
+  addButtonIcon: {
     color: colors.electricCyan,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
   },
-  addPillPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.96 }],
-  },
-  addPillText: {
+  addButtonText: {
     color: colors.text,
     fontSize: typography.bodySm,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   ambientGlow: {
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
-    borderRadius: 130,
-    height: 180,
+    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    borderRadius: 120,
+    height: 160,
     position: 'absolute',
-    width: 180,
+    width: 160,
   },
   centerAmount: {
     color: colors.text,
     fontSize: typography.balance,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-    textShadowColor: 'rgba(0, 240, 255, 0.4)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
+    fontWeight: '400',
+    letterSpacing: -0.5,
   },
   centerCaption: {
     color: colors.textSecondary,
-    fontSize: typography.caption + 1,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    marginTop: 2,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    marginTop: 3,
   },
   centerContent: {
     alignItems: 'center',
@@ -391,34 +303,25 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   rateChip: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(12, 18, 32, 0.85)',
-    borderColor: 'rgba(0, 240, 255, 0.3)',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md + 2,
-    paddingVertical: spacing.xs + 3,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
     position: 'absolute',
-    right: -8,
-    top: 14,
+    right: -10,
+    top: 10,
   },
   rateChipCaption: {
     color: colors.textSecondary,
-    fontSize: 10,
+    fontSize: 9.5,
     marginTop: 1,
   },
   rateChipValue: {
     color: colors.electricCyan,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  rotatingAuraContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   wrapper: {
     alignItems: 'center',
-    height: SIZE + 16,
+    height: SIZE + 20,
     justifyContent: 'center',
     position: 'relative',
     width: SIZE,

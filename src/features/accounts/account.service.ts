@@ -8,17 +8,12 @@ import { validateAccountInput } from './account-validation';
  * Account repository/service — the ONLY module that touches Supabase for
  * accounts. UI and stores never import supabase-js directly.
  *
- * OWNERSHIP: user_id is NEVER accepted from callers. Ownership is determined
- * server-side by RLS (auth.uid() = user_id); rows are written/read for the
- * authenticated session only.
+ * OWNERSHIP: user_id is determined server-side by RLS (auth.uid() = user_id)
+ * and sent explicitly from the active session.
  *
  * BALANCES: displayed balances come from the authoritative `account_balances`
  * SQL view (which folds in initial_balance_paise). This module only joins
  * account rows with their balance rows; no balance arithmetic happens here.
- *
- * OFFLINE BOUNDARY: this phase is Supabase-backed only. The planned SQLite
- * cache/sync layer does not exist yet; when it arrives it will wrap or replace
- * these repository functions without changing store/UI contracts.
  */
 
 export interface AccountInput {
@@ -45,12 +40,14 @@ export class AccountServiceError extends Error {
   readonly code: AccountErrorCode;
   /** Safe to render directly in the UI. */
   readonly userMessage: string;
+  readonly details?: string;
 
-  constructor(code: AccountErrorCode, userMessage: string) {
-    super(userMessage);
+  constructor(code: AccountErrorCode, userMessage: string, details?: string) {
+    super(details ? `${userMessage} (${details})` : userMessage);
     this.name = 'AccountServiceError';
     this.code = code;
     this.userMessage = userMessage;
+    this.details = details;
   }
 }
 
@@ -89,31 +86,47 @@ function mapAccountRow(row: AccountRow): Account {
   };
 }
 
-/** Maps any thrown value into an AccountServiceError; raw errors stay internal. */
+/** Maps any thrown value into an AccountServiceError; logs full diagnostic error. */
 export function mapAccountError(error: unknown): AccountServiceError {
   if (error instanceof AccountServiceError) {
     return error;
   }
   if (error instanceof TypeError) {
+    console.error('[MoneyManager] Account network failure:', error);
     logDev('accounts network failure', { reason: String(error.message) });
-    return new AccountServiceError('network', ACCOUNT_USER_MESSAGES.network);
+    return new AccountServiceError('network', ACCOUNT_USER_MESSAGES.network, error.message);
   }
 
-  const postgrest = error as { code?: string | null; message?: string } | null;
+  const postgrest = error as {
+    code?: string | null;
+    message?: string;
+    details?: string;
+    hint?: string;
+  } | null;
+
   const pgCode = postgrest?.code ?? '';
+  const postgrestMessage = postgrest?.message ?? '';
 
-  if (pgCode === '23505' || postgrest?.message?.includes('duplicate key')) {
-    // unique (user_id, name) on accounts — graceful duplicate handling.
+  // Surface full error object in console for real debugging
+  console.error('[MoneyManager] Supabase Account Error:', {
+    code: pgCode,
+    message: postgrestMessage,
+    details: postgrest?.details,
+    hint: postgrest?.hint,
+    raw: error,
+  });
+
+  if (pgCode === '23505' || postgrestMessage.includes('duplicate key') || postgrestMessage.includes('unique constraint')) {
     logDev('accounts duplicate name');
-    return new AccountServiceError('duplicate_name', ACCOUNT_USER_MESSAGES.duplicate_name);
+    return new AccountServiceError('duplicate_name', ACCOUNT_USER_MESSAGES.duplicate_name, postgrestMessage);
   }
-  if (pgCode === 'PGRST301' || postgrest?.message?.includes('JWT')) {
+  if (pgCode === 'PGRST301' || postgrestMessage.includes('JWT') || postgrestMessage.includes('token')) {
     logDev('accounts unauthorized (expired JWT)');
-    return new AccountServiceError('unauthorized', ACCOUNT_USER_MESSAGES.unauthorized);
+    return new AccountServiceError('unauthorized', ACCOUNT_USER_MESSAGES.unauthorized, postgrestMessage);
   }
 
-  logDev('accounts unexpected error', { pgCode });
-  return new AccountServiceError('unknown', ACCOUNT_USER_MESSAGES.unknown);
+  logDev('accounts unexpected error', { pgCode, message: postgrestMessage });
+  return new AccountServiceError('unknown', ACCOUNT_USER_MESSAGES.unknown, postgrestMessage);
 }
 
 async function throwMapped(
@@ -124,8 +137,6 @@ async function throwMapped(
 ): Promise<unknown> {
   let result: { data: unknown; error: { code?: string | null; message?: string } | null };
   try {
-    // Fetch-level failures (offline, DNS, timeouts) surface as rejections;
-    // API-level failures arrive as { error }. Both are mapped identically.
     result = await promise;
   } catch (thrown) {
     throw mapAccountError(thrown);
@@ -164,25 +175,64 @@ export async function listActiveAccounts(): Promise<AccountWithBalance[]> {
 }
 
 export async function createAccount(input: AccountInput): Promise<Account> {
-  // Defensive re-validation at the service boundary; the UI validates first
-  // for inline field errors.
+  // Defensive re-validation at the service boundary
   const validation = validateAccountInput(input);
   if (!validation.valid) {
     throw new AccountServiceError('validation', validation.message);
   }
 
+  // 1. Verify and get current authenticated session user id
+  let userId: string | undefined;
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth?.getSession() ?? {};
+    if (sessionError) {
+      console.error('[MoneyManager] Session retrieval error in createAccount:', sessionError);
+    }
+    userId = sessionData?.session?.user?.id;
+
+    // Ensure public.users row exists to satisfy foreign key constraint
+    if (userId) {
+      const email = sessionData?.session?.user?.email ?? null;
+      const metaName =
+        sessionData?.session?.user?.user_metadata?.full_name ||
+        sessionData?.session?.user?.user_metadata?.name ||
+        null;
+      await supabase.from('users').upsert(
+        { id: userId, email, display_name: metaName },
+        { onConflict: 'id' },
+      );
+    }
+  } catch (authLookupErr) {
+    console.warn('[MoneyManager] Session check warning in createAccount:', authLookupErr);
+  }
+
+  // 2. Prepare payload
+  const payload: {
+    name: string;
+    type: string;
+    initial_balance_paise: number;
+    user_id?: string;
+  } = {
+    name: validation.name,
+    type: validation.type,
+    initial_balance_paise: validation.initialBalancePaise,
+  };
+
+  if (userId) {
+    payload.user_id = userId;
+  }
+
+  console.log('[MoneyManager] Inserting account with payload:', JSON.stringify(payload));
+
   const data = (await throwMapped(
     supabase
       .from('accounts')
-      .insert({
-        name: validation.name,
-        type: validation.type,
-        initial_balance_paise: validation.initialBalancePaise,
-      })
+      .insert(payload)
       .select()
       .single(),
   )) as AccountRow;
 
+  console.log('[MoneyManager] Account created successfully:', data.id);
   return mapAccountRow(data);
 }
 
@@ -192,9 +242,7 @@ export interface AccountUpdatePatch {
 }
 
 /**
- * Edits name and/or type. initial_balance_paise is deliberately NOT editable:
- * opening balance represents historical financial state and may only be
- * changed later through an explicit adjustment mechanism.
+ * Edits name and/or type. initial_balance_paise is deliberately NOT editable.
  */
 export async function updateAccount(id: string, patch: AccountUpdatePatch): Promise<Account> {
   const payload: { name?: string; type?: AccountType } = {};
@@ -242,4 +290,3 @@ export const accountService = {
   updateAccount,
   archiveAccount,
 };
-

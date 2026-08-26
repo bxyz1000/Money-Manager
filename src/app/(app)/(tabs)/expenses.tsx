@@ -12,14 +12,12 @@ import {
   View,
 } from 'react-native';
 
-import { FlowRibbon } from '@/components/FlowRibbon';
+import { GlassCard } from '@/components/GlassCard';
 import { SegmentedControl, type SegmentOption } from '@/components/SegmentedControl';
 import { TransactionRow } from '@/components/TransactionRow';
 import {
   colors,
-  glass,
   radius,
-  shadowElevation,
   spacing,
   typography,
 } from '@/components/theme';
@@ -87,9 +85,6 @@ export default function ExpensesScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Hyper-Bright Electric Cyan Liquid River with Moving Light Nodes */}
-      <FlowRibbon width="100%" height="100%" opacity={0.88} />
-
       <View style={[styles.container, insets]}>
         <Animated.View
           style={{
@@ -105,44 +100,45 @@ export default function ExpensesScreen() {
             ],
           }}
         >
-          {/* Header with Search and Date Pill */}
+          {/* Header Row */}
           <View style={styles.headerRow}>
             <Text style={styles.title}>Expenses</Text>
-            <View style={styles.dateBadge}>
-              <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+            <GlassCard style={styles.dateBadge} intensity={40} borderRadius={radius.pill}>
+              <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
               <Text style={styles.dateBadgeText}>Today ∨</Text>
-            </View>
+            </GlassCard>
           </View>
 
-          {/* Top-Lit Specular Monthly Summary Strip */}
-          <View style={[styles.summaryCard, shadowElevation(2)]}>
-            <View style={styles.topHighlightEdge} pointerEvents="none" />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Income</Text>
-              <Text style={[styles.summaryValue, { color: colors.success }]}>
-                +{formatPaiseAsINR(monthIncomePaise)}
-              </Text>
+          {/* Frosted Glass Monthly Summary Strip */}
+          <GlassCard style={styles.summaryCard} intensity={50} borderRadius={radius.md}>
+            <View style={styles.summaryCardContent}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Income</Text>
+                <Text style={[styles.summaryValue, { color: colors.success }]}>
+                  +{formatPaiseAsINR(monthIncomePaise)}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Expenses</Text>
+                <Text style={[styles.summaryValue, { color: colors.danger }]}>
+                  −{formatPaiseAsINR(monthExpensePaise)}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Net</Text>
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    { color: monthNetPaise >= 0 ? colors.electricCyan : colors.danger },
+                  ]}
+                >
+                  {formatPaiseAsINR(monthNetPaise)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Expenses</Text>
-              <Text style={[styles.summaryValue, { color: colors.danger }]}>
-                −{formatPaiseAsINR(monthExpensePaise)}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Net</Text>
-              <Text
-                style={[
-                  styles.summaryValue,
-                  { color: monthNetPaise >= 0 ? colors.electricCyan : colors.danger },
-                ]}
-              >
-                {formatPaiseAsINR(monthNetPaise)}
-              </Text>
-            </View>
-          </View>
+          </GlassCard>
 
           {/* Animated Segmented Filter Bar */}
           <View style={styles.filterContainer}>
@@ -163,17 +159,19 @@ export default function ExpensesScreen() {
             </View>
           )}
 
-          {/* Transactions List or Conditionally Rendered Empty State */}
+          {/* Transactions List or Empty State */}
           {isEmpty ? (
-            <View style={[styles.emptyCard, glass.card]}>
-              <Text style={styles.emptyIcon}>📊</Text>
-              <Text style={styles.emptyTitle}>Nothing here yet</Text>
-              <Text style={styles.emptyBody}>
-                {filter === 'all'
-                  ? 'Recorded transactions will appear in this list.'
-                  : `No ${filter} transactions found for this period.`}
-              </Text>
-            </View>
+            <GlassCard style={styles.emptyCard} intensity={45} borderRadius={radius.md}>
+              <View style={styles.emptyCardContent}>
+                <Text style={styles.emptyIcon}>📊</Text>
+                <Text style={styles.emptyTitle}>Nothing here yet</Text>
+                <Text style={styles.emptyBody}>
+                  {filter === 'all'
+                    ? 'Recorded transactions will appear in this list.'
+                    : `No ${filter} transactions found for this period.`}
+                </Text>
+              </View>
+            </GlassCard>
           ) : (
             <FlatList
               data={visible}
@@ -213,19 +211,15 @@ const styles = StyleSheet.create({
   },
   dateBadge: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    borderWidth: 1,
     flexDirection: 'row',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: spacing.md,
     paddingVertical: 5,
   },
   dateBadgeText: {
     color: colors.textSecondary,
-    fontSize: typography.caption + 1,
-    fontWeight: '600',
+    fontSize: typography.caption,
+    fontWeight: '500',
   },
   emptyBody: {
     color: colors.textSecondary,
@@ -235,12 +229,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyCard: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(13, 19, 33, 0.82)',
-    borderColor: colors.border,
-    justifyContent: 'center',
     marginHorizontal: spacing.sm,
     marginTop: spacing.xl,
+  },
+  emptyCardContent: {
+    alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xxl,
   },
@@ -251,7 +244,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.text,
     fontSize: typography.title,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
   },
   errorBanner: {
@@ -272,17 +265,17 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySm,
   },
   filterContainer: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sectionGap - 8,
   },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sectionGap - 8,
     marginTop: spacing.lg,
   },
   listContent: {
-    gap: spacing.sm,
+    gap: spacing.sm + 2,
     paddingBottom: spacing.xxl * 2,
   },
   retryText: {
@@ -294,22 +287,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryCard: {
+    marginBottom: spacing.sectionGap - 8,
+  },
+  summaryCardContent: {
     alignItems: 'center',
-    backgroundColor: 'rgba(13, 19, 33, 0.85)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: radius.lg,
-    borderWidth: 1,
     flexDirection: 'row',
-    marginBottom: spacing.md,
-    overflow: 'hidden',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md + 2,
-    position: 'relative',
   },
   summaryDivider: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    height: 32,
-    width: 1,
+    height: 30,
+    width: StyleSheet.hairlineWidth,
   },
   summaryItem: {
     alignItems: 'center',
@@ -318,26 +307,17 @@ const styles = StyleSheet.create({
   summaryLabel: {
     color: colors.textSecondary,
     fontSize: typography.caption,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   summaryValue: {
     color: colors.text,
     fontSize: typography.bodySm,
-    fontWeight: '800',
+    fontWeight: '500',
     marginTop: 3,
   },
   title: {
     color: colors.text,
     fontSize: typography.heading + 2,
-    fontWeight: '800',
-  },
-  topHighlightEdge: {
-    backgroundColor: colors.specularBorderTop,
-    height: 1.5,
-    left: 0,
-    opacity: 0.9,
-    position: 'absolute',
-    right: 0,
-    top: 0,
+    fontWeight: '600',
   },
 });

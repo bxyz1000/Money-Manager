@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { GlassButton } from '@/components/GlassCard';
 import type { TransactionType } from '@/types/domain';
 import { parseAmountToPaise, paiseToDecimalRupees } from '@/utils/money';
 import {
@@ -83,12 +84,10 @@ export default function EditTransactionScreen() {
     return <Redirect href="/(auth)/login" />;
   }
 
-/** Display-only rupee string for pre-filling the amount input (re-parsed on save). */
-function formatRupeesForInput(paise: number): string {
-  return paiseToDecimalRupees(paise).toFixed(2);
-}
+  function formatRupeesForInput(paise: number): string {
+    return paiseToDecimalRupees(paise).toFixed(2);
+  }
 
-// PART1_END
   if (!txn) {
     return (
       <View style={[styles.container, styles.centered, insets]}>
@@ -216,16 +215,20 @@ function formatRupeesForInput(paise: number): string {
           {accounts.map((account) => {
             const selected = accountId === account.id;
             return (
-              <Pressable
+              <GlassButton
                 key={account.id}
                 style={[styles.typeChip, selected && styles.typeChipSelected]}
+                intensity={selected ? 55 : 35}
+                borderRadius={radius.pill}
                 onPress={() => setAccountId(account.id)}
                 disabled={busy}
               >
-                <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                  {account.name}
-                </Text>
-              </Pressable>
+                <View style={styles.typeChipContent}>
+                  <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+                    {account.name}
+                  </Text>
+                </View>
+              </GlassButton>
             );
           })}
         </View>
@@ -237,16 +240,20 @@ function formatRupeesForInput(paise: number): string {
               {accounts.map((account) => {
                 const selected = toAccountId === account.id;
                 return (
-                  <Pressable
+                  <GlassButton
                     key={account.id}
                     style={[styles.typeChip, selected && styles.typeChipSelected]}
+                    intensity={selected ? 55 : 35}
+                    borderRadius={radius.pill}
                     onPress={() => setToAccountId(account.id)}
                     disabled={busy}
                   >
-                    <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                      {account.name}
-                    </Text>
-                  </Pressable>
+                    <View style={styles.typeChipContent}>
+                      <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+                        {account.name}
+                      </Text>
+                    </View>
+                  </GlassButton>
                 );
               })}
             </View>
@@ -291,13 +298,17 @@ function formatRupeesForInput(paise: number): string {
           </View>
         )}
 
-        <Pressable
-          style={[styles.saveButton, busy && styles.disabled]}
+        <GlassButton
+          style={styles.saveButton}
+          intensity={55}
+          borderRadius={radius.md}
           disabled={busy}
           onPress={() => void save()}
         >
-          <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Changes'}</Text>
-        </Pressable>
+          <View style={styles.saveButtonContent}>
+            <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Changes'}</Text>
+          </View>
+        </GlassButton>
 
         <Pressable
           style={[styles.deleteButton, busy && styles.disabled]}
@@ -324,6 +335,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 15,
   },
+  cancelButton: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  cancelButtonText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '500',
+  },
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -334,7 +355,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     alignItems: 'center',
-    borderColor: colors.danger,
+    borderColor: 'rgba(255, 92, 122, 0.4)',
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -342,7 +363,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: colors.danger,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   disabled: {
     opacity: 0.5,
@@ -359,10 +380,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   input: {
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
     borderRadius: radius.sm,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     color: colors.text,
     fontSize: 16,
     marginBottom: spacing.md,
@@ -372,14 +393,17 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs + 2,
   },
   saveButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 112, 243, 0.22)',
+    borderColor: 'rgba(0, 240, 255, 0.4)',
     marginTop: spacing.md,
+  },
+  saveButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
   },
   saveButtonText: {
@@ -393,9 +417,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   secondaryButton: {
+    borderColor: colors.border,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -404,44 +428,33 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
+  segmentedWrapper: {
+    marginBottom: spacing.lg,
+  },
   title: {
     color: colors.text,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: spacing.md,
   },
   typeChip: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    flex: 1,
-    paddingVertical: 12,
+    backgroundColor: colors.surfaceGlass,
+  },
+  typeChipContent: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 8,
   },
   typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: 'rgba(0, 112, 243, 0.35)',
+    borderColor: 'rgba(0, 240, 255, 0.45)',
   },
   typeChipText: {
-    color: colors.text,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   typeChipTextSelected: {
     color: colors.primaryText,
-  },
-  cancelButton: {
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  cancelButtonText: {
-    color: colors.textSecondary,
-    fontSize: 15,
     fontWeight: '600',
-  },
-  segmentedWrapper: {
-    marginBottom: spacing.lg,
   },
   typeRow: {
     flexDirection: 'row',
@@ -450,7 +463,3 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 });
-
-
-
-

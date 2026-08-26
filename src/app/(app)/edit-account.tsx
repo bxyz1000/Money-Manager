@@ -10,21 +10,13 @@ import {
   View,
 } from 'react-native';
 
+import { GlassButton, GlassCard } from '@/components/GlassCard';
 import type { AccountType } from '@/types/domain';
 import { formatPaiseAsINR } from '@/utils/money';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useAccountsStore } from '@/stores/accounts.store';
 import { useSessionStore } from '@/stores/session.store';
 import { colors, radius, spacing } from '@/components/theme';
-
-/**
- * Edit Account screen.
- *
- * Editable: name, type. Archivable via explicit confirm.
- * NOT editable: initial balance — it represents historical financial state;
- * corrections belong to a future explicit adjustment mechanism, not silent
- * edits. Balance itself is read-only and authoritative from the DB view.
- */
 
 const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank' },
@@ -111,10 +103,12 @@ export default function EditAccountScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{account.name}</Text>
 
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Current balance</Text>
-          <Text style={styles.balanceValue}>{formatPaiseAsINR(account.balancePaise)}</Text>
-        </View>
+        <GlassCard style={styles.balanceCard} intensity={50} borderRadius={radius.lg}>
+          <View style={styles.balanceCardContent}>
+            <Text style={styles.balanceLabel}>CURRENT BALANCE</Text>
+            <Text style={styles.balanceValue}>{formatPaiseAsINR(account.balancePaise)}</Text>
+          </View>
+        </GlassCard>
 
         <View style={styles.readOnlyRow}>
           <Text style={styles.readOnlyLabel}>Opening balance (fixed)</Text>
@@ -138,16 +132,20 @@ export default function EditAccountScreen() {
           {TYPE_OPTIONS.map((option) => {
             const selected = type === option.value;
             return (
-              <Pressable
+              <GlassButton
                 key={option.value}
                 style={[styles.typeChip, selected && styles.typeChipSelected]}
+                intensity={selected ? 55 : 35}
+                borderRadius={radius.sm}
                 onPress={() => setType(option.value)}
                 disabled={busy}
               >
-                <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                  {option.label}
-                </Text>
-              </Pressable>
+                <View style={styles.typeChipContent}>
+                  <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+                    {option.label}
+                  </Text>
+                </View>
+              </GlassButton>
             );
           })}
         </View>
@@ -158,13 +156,17 @@ export default function EditAccountScreen() {
           </View>
         )}
 
-        <Pressable
-          style={[styles.saveButton, busy && styles.disabled]}
+        <GlassButton
+          style={styles.saveButton}
+          intensity={55}
+          borderRadius={radius.md}
           disabled={busy || name.trim().length === 0}
           onPress={() => void save()}
         >
-          <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Changes'}</Text>
-        </Pressable>
+          <View style={styles.saveButtonContent}>
+            <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Changes'}</Text>
+          </View>
+        </GlassButton>
 
         <Pressable
           style={[styles.archiveButton, busy && styles.disabled]}
@@ -189,7 +191,7 @@ export default function EditAccountScreen() {
 const styles = StyleSheet.create({
   archiveButton: {
     alignItems: 'center',
-    borderColor: colors.danger,
+    borderColor: 'rgba(255, 92, 122, 0.4)',
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -197,27 +199,39 @@ const styles = StyleSheet.create({
   },
   archiveButtonText: {
     color: colors.danger,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   balanceCard: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
     marginBottom: spacing.lg,
+  },
+  balanceCardContent: {
     padding: spacing.xl,
   },
   balanceLabel: {
-    color: '#9aa3b8',
-    fontSize: 13,
+    color: colors.textSecondary,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
   },
   balanceValue: {
-    color: colors.primaryText,
+    color: colors.text,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '400',
     marginTop: spacing.xs,
   },
   bodyText: {
     color: colors.textSecondary,
     fontSize: 15,
+  },
+  cancelButton: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  cancelButtonText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '500',
   },
   centered: {
     alignItems: 'center',
@@ -242,10 +256,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   input: {
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
     borderRadius: radius.sm,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     color: colors.text,
     fontSize: 16,
     marginBottom: spacing.md,
@@ -255,7 +269,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs + 2,
   },
   readOnlyLabel: {
@@ -277,13 +291,16 @@ const styles = StyleSheet.create({
   readOnlyValue: {
     color: colors.text,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   saveButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 112, 243, 0.22)',
+    borderColor: 'rgba(0, 240, 255, 0.4)',
     marginTop: spacing.md,
+  },
+  saveButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
   },
   saveButtonText: {
@@ -297,9 +314,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   secondaryButton: {
+    borderColor: colors.border,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -311,37 +328,28 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: spacing.md,
   },
   typeChip: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    borderWidth: 1,
+    backgroundColor: colors.surfaceGlass,
     flex: 1,
+  },
+  typeChipContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
   },
   typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: 'rgba(0, 112, 243, 0.35)',
+    borderColor: 'rgba(0, 240, 255, 0.45)',
   },
   typeChipText: {
-    color: colors.text,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   typeChipTextSelected: {
     color: colors.primaryText,
-  },
-  cancelButton: {
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  cancelButtonText: {
-    color: colors.textSecondary,
-    fontSize: 15,
     fontWeight: '600',
   },
   typeRow: {
@@ -350,4 +358,3 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 });
-

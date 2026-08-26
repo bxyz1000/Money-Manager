@@ -103,20 +103,36 @@ export function mapTransactionError(error: unknown): TransactionServiceError {
     return error;
   }
   if (error instanceof TypeError) {
+    console.error('[MoneyManager] Transaction network failure:', error);
     logDev('transactions network failure', { reason: String(error.message) });
     return new TransactionServiceError('network', TRANSACTION_USER_MESSAGES.network);
   }
 
-  const postgrest = error as { code?: string | null; message?: string } | null;
+  const postgrest = error as {
+    code?: string | null;
+    message?: string;
+    details?: string;
+    hint?: string;
+  } | null;
   const pgCode = postgrest?.code ?? '';
+  const postgrestMessage = postgrest?.message ?? '';
 
-  if (pgCode === 'PGRST301' || postgrest?.message?.includes('JWT')) {
+  console.error('[MoneyManager] Supabase Transaction Error:', {
+    code: pgCode,
+    message: postgrestMessage,
+    details: postgrest?.details,
+    hint: postgrest?.hint,
+    raw: error,
+  });
+
+  if (pgCode === 'PGRST301' || postgrestMessage.includes('JWT') || postgrestMessage.includes('token')) {
     logDev('transactions unauthorized (expired JWT)');
     return new TransactionServiceError('unauthorized', TRANSACTION_USER_MESSAGES.unauthorized);
   }
 
-  logDev('transactions unexpected error', { pgCode });
-  return new TransactionServiceError('unknown', TRANSACTION_USER_MESSAGES.unknown);
+  const displayMsg = postgrestMessage || TRANSACTION_USER_MESSAGES.unknown;
+  logDev('transactions unexpected error', { pgCode, message: postgrestMessage });
+  return new TransactionServiceError('unknown', displayMsg);
 }
 
 /** Awaits a query; maps failures. `singleMissIsNotFound` maps PGRST116 to not_found. */
@@ -193,8 +209,12 @@ export async function listTransactions(limit = 200): Promise<TransactionListItem
     supabase.from('categories').select('id,name'),
   )) as { id: string; name: string }[] | null;
 
-  const accountNames = new Map((accountRows ?? []).map((a) => [a.id, a.name]));
-  const categoryNames = new Map((categoryRows ?? []).map((c) => [c.id, c.name]));
+  const accountNames = new Map<string, string>(
+    (accountRows ?? []).map((row) => [row.id, row.name]),
+  );
+  const categoryNames = new Map<string, string>(
+    (categoryRows ?? []).map((row) => [row.id, row.name]),
+  );
 
   return (rows ?? []).map((row) => ({
     ...mapTransactionRow(row),
@@ -218,9 +238,11 @@ export async function getTransaction(id: string): Promise<Transaction> {
 
 export async function createTransaction(input: TransactionInput): Promise<Transaction> {
   const payload = toPayload(input);
+  console.log('[MoneyManager] Creating transaction with payload:', JSON.stringify(payload));
   const data = (await throwMapped(
     supabase.from('transactions').insert(payload).select().single(),
   )) as TransactionRow;
+  console.log('[MoneyManager] Transaction created successfully:', data.id);
   return mapTransactionRow(data);
 }
 

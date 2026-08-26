@@ -26,12 +26,18 @@ export class CategoryServiceError extends Error {
 
 async function throwMapped(promise: PromiseLike<{
   data: unknown;
-  error: { code?: string | null; message?: string } | null;
+  error: { code?: string | null; message?: string; details?: string; hint?: string } | null;
 }>): Promise<unknown> {
   const { data, error } = await promise;
   if (error) {
-    logDev('categories query failed', { pgCode: error.code ?? '' });
-    throw new CategoryServiceError('Something went wrong. Please try again.');
+    console.error('[MoneyManager] Supabase Category Error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    logDev('categories query failed', { pgCode: error.code ?? '', message: error.message });
+    throw new CategoryServiceError(error.message || 'Something went wrong. Please try again.');
   }
   return data;
 }
@@ -57,8 +63,11 @@ export async function ensureCategory(rawName: string): Promise<CategoryRef> {
     return existing[0] as CategoryRef;
   }
 
+  const payload: { name: string } = { name };
+  console.log('[MoneyManager] Creating category with payload:', JSON.stringify(payload));
+
   const inserted = (await throwMapped(
-    supabase.from('categories').insert({ name }).select().single(),
+    supabase.from('categories').insert(payload).select().single(),
   )) as CategoryRef;
   return inserted;
 }

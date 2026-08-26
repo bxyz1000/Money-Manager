@@ -12,13 +12,12 @@ import {
 } from 'react-native';
 
 import { BalanceRing } from '@/components/BalanceRing';
-import { FlowRibbon } from '@/components/FlowRibbon';
+import { GlassButton, GlassCard } from '@/components/GlassCard';
+import { HeroRadialGlow } from '@/components/HeroRadialGlow';
 import { TransactionRow } from '@/components/TransactionRow';
 import {
   colors,
-  glass,
   radius,
-  shadowElevation,
   spacing,
   typography,
 } from '@/components/theme';
@@ -82,9 +81,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Hyper-Bright Electric Cyan Liquid River with Moving Light Nodes */}
-      <FlowRibbon width="100%" height="100%" flip opacity={0.88} />
-
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, insets]}
@@ -103,7 +99,7 @@ export default function HomeScreen() {
             ],
           }}
         >
-          {/* Header Row (Avatar + Greeting + Search & Notifications) */}
+          {/* Header Row */}
           <View style={styles.headerRow}>
             <Pressable
               accessibilityLabel="Profile"
@@ -119,25 +115,30 @@ export default function HomeScreen() {
 
             {/* Quick Header Utility Icons */}
             <View style={styles.headerIconsRow}>
-              <Pressable
+              <GlassButton
                 accessibilityLabel="Search"
                 onPress={() => router.push('/(app)/(tabs)/expenses')}
                 style={styles.headerIconBtn}
+                borderRadius={radius.pill}
+                intensity={40}
               >
-                <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
-              <Pressable
+                <Ionicons name="search-outline" size={19} color={colors.textSecondary} />
+              </GlassButton>
+              <GlassButton
                 accessibilityLabel="Accounts"
                 onPress={() => router.push('/(app)/(tabs)/accounts')}
                 style={styles.headerIconBtn}
+                borderRadius={radius.pill}
+                intensity={40}
               >
-                <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
+                <Ionicons name="notifications-outline" size={19} color={colors.textSecondary} />
+              </GlassButton>
             </View>
           </View>
 
-          {/* Hero Balance Card with Hyper-Luminous Cyan Vortex Ring */}
-          <View style={[styles.ringCard, shadowElevation(2)]}>
+          {/* Hero Balance Section with Centered Soft Radial Glow */}
+          <View style={styles.heroSection}>
+            <HeroRadialGlow size={320} />
             <BalanceRing
               fraction={fraction}
               centerLabel={formatTotal(total)}
@@ -145,56 +146,53 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Quick Action Pill Buttons ("Send" / "Receive" / "Transfer") */}
+          {/* Frosted Glass Action Buttons ("Send" / "Receive" / "Transfer") */}
           <View style={styles.quickActionRow}>
-            <Pressable
+            <GlassButton
               accessibilityLabel="Send Expense"
-              style={({ pressed }) => [
-                styles.actionPill,
-                glass.card,
-                shadowElevation(1),
-                pressed && styles.pressed,
-              ]}
+              style={styles.actionPill}
+              intensity={50}
+              borderRadius={radius.md}
               onPress={() => openAdd('expense')}
             >
-              <Text style={styles.actionPillText}>Send</Text>
-            </Pressable>
+              <View style={styles.actionPillContent}>
+                <Text style={styles.actionPillText}>Send</Text>
+              </View>
+            </GlassButton>
 
-            <Pressable
+            <GlassButton
               accessibilityLabel="Receive Income"
-              style={({ pressed }) => [
-                styles.actionPill,
-                glass.card,
-                shadowElevation(1),
-                pressed && styles.pressed,
-              ]}
+              style={styles.actionPill}
+              intensity={50}
+              borderRadius={radius.md}
               onPress={() => openAdd('income')}
             >
-              <Text style={styles.actionPillText}>Receive</Text>
-            </Pressable>
+              <View style={styles.actionPillContent}>
+                <Text style={styles.actionPillText}>Receive</Text>
+              </View>
+            </GlassButton>
 
-            <Pressable
+            <GlassButton
               accessibilityLabel="Transfer Money"
-              style={({ pressed }) => [
-                styles.actionPill,
-                glass.card,
-                shadowElevation(1),
-                pressed && styles.pressed,
-              ]}
+              style={styles.actionPill}
+              intensity={50}
+              borderRadius={radius.md}
               onPress={() => openAdd('transfer')}
             >
-              <Text style={styles.actionPillText}>Transfer</Text>
-            </Pressable>
+              <View style={styles.actionPillContent}>
+                <Text style={styles.actionPillText}>Transfer</Text>
+              </View>
+            </GlassButton>
           </View>
 
-          {/* Recent Transactions Section with Date / Filter Header */}
+          {/* Recent Transactions Section Header with Generous Spacing */}
           <View style={styles.sectionHeader}>
             <View style={styles.dateSelectorRow}>
               <Text style={styles.sectionTitle}>Expenses</Text>
-              <View style={styles.datePill}>
+              <GlassCard style={styles.datePill} intensity={40} borderRadius={radius.pill}>
                 <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
-                <Text style={styles.datePillText}>Recent ∨</Text>
-              </View>
+                <Text style={styles.datePillText}>Today ∨</Text>
+              </GlassCard>
             </View>
 
             <Pressable onPress={() => router.push('/(app)/(tabs)/expenses')}>
@@ -202,12 +200,12 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* Recent Transactions List with Top-Lit Specular Cards */}
+          {/* Frosted Glass Transactions List */}
           <View style={styles.recentList}>
             {recent.length === 0 ? (
-              <View style={[styles.emptyCard, glass.card]}>
+              <GlassCard style={styles.emptyCard} intensity={45} borderRadius={radius.md}>
                 <Text style={styles.emptyText}>Your recent transactions will appear here.</Text>
-              </View>
+              </GlassCard>
             ) : (
               recent.map((txn) => (
                 <TransactionRow
@@ -229,7 +227,7 @@ export default function HomeScreen() {
   );
 }
 
-/** Compact total formatting for the ring counter (whole rupees, no paise). */
+/** Indian-grouped rupee formatting. */
 function formatTotal(paise: number): string {
   const rupees = Math.round(paise / 100);
   const negative = rupees < 0;
@@ -244,24 +242,24 @@ function formatTotal(paise: number): string {
 
 const styles = StyleSheet.create({
   actionPill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: radius.md,
     flex: 1,
+  },
+  actionPillContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
   },
   actionPillText: {
     color: colors.text,
     fontSize: typography.body,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   avatar: {
     alignItems: 'center',
-    backgroundColor: colors.neonBlue,
-    borderColor: colors.specularBorderTop,
+    backgroundColor: 'rgba(0, 112, 243, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: radius.pill,
-    borderWidth: 1.5,
+    borderWidth: StyleSheet.hairlineWidth,
     height: 44,
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -270,7 +268,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: colors.primaryText,
     fontSize: typography.title,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   container: {
     backgroundColor: 'transparent',
@@ -283,19 +281,15 @@ const styles = StyleSheet.create({
   },
   datePill: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   datePillText: {
     color: colors.textSecondary,
     fontSize: typography.caption,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   dateSelectorRow: {
     alignItems: 'center',
@@ -314,17 +308,13 @@ const styles = StyleSheet.create({
   greeting: {
     color: colors.textSecondary,
     fontSize: typography.caption + 1,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   headerIconBtn: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    height: 36,
+    height: 38,
     justifyContent: 'center',
-    width: 36,
+    width: 38,
   },
   headerIconsRow: {
     flexDirection: 'row',
@@ -333,26 +323,21 @@ const styles = StyleSheet.create({
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sectionGap,
   },
-  pressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.98 }],
+  heroSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sectionGap,
+    position: 'relative',
   },
   quickActionRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
-    marginTop: spacing.sm,
+    gap: spacing.md,
+    marginBottom: spacing.sectionGap,
   },
   recentList: {
-    gap: spacing.sm,
-  },
-  ringCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-    position: 'relative',
+    gap: spacing.sm + 2,
   },
   root: {
     backgroundColor: colors.background,
@@ -362,21 +347,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.md + 4,
   },
   sectionTitle: {
     color: colors.text,
     fontSize: typography.heading,
-    fontWeight: '800',
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   viewAll: {
     color: colors.electricCyan,
     fontSize: typography.caption + 1,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   welcomeBack: {
     color: colors.text,
-    fontSize: typography.title,
-    fontWeight: '700',
+    fontSize: typography.title + 1,
+    fontWeight: '600',
   },
 });

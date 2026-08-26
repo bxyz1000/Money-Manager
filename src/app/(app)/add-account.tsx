@@ -10,20 +10,12 @@ import {
   View,
 } from 'react-native';
 
+import { GlassButton } from '@/components/GlassCard';
 import type { AccountType } from '@/types/domain';
 import { parseAmountToPaise } from '@/utils/money';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useAccountsStore } from '@/stores/accounts.store';
-import { colors, radius, spacing } from '@/components/theme';
-
-/**
- * Add Account modal.
- *
- * Opening balance input is free-form INR text ("1000", "1000.50", "₹1,000.50")
- * parsed STRICTLY through utils/money.parseAmountToPaise — never parseFloat.
- * No opening-balance transaction is created; the value populates
- * initial_balance_paise only.
- */
+import { colors, radius, spacing, typography } from '@/components/theme';
 
 const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank' },
@@ -79,8 +71,9 @@ export default function AddAccountScreen() {
     setBusy(false);
 
     if (!result.ok) {
-      // Duplicate names surface gracefully here via the service mapping.
-      setFormError(result.error ?? 'Could not create the account.');
+      const errorMsg = result.error ?? 'Could not create the account.';
+      setFormError(errorMsg);
+      Alert.alert('Account Creation Failed', errorMsg);
       return;
     }
 
@@ -111,16 +104,20 @@ export default function AddAccountScreen() {
           {TYPE_OPTIONS.map((option) => {
             const selected = type === option.value;
             return (
-              <Pressable
+              <GlassButton
                 key={option.value}
                 style={[styles.typeChip, selected && styles.typeChipSelected]}
+                intensity={selected ? 55 : 35}
+                borderRadius={radius.sm}
                 onPress={() => setType(option.value)}
                 disabled={busy}
               >
-                <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                  {option.label}
-                </Text>
-              </Pressable>
+                <View style={styles.typeChipContent}>
+                  <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+                    {option.label}
+                  </Text>
+                </View>
+              </GlassButton>
             );
           })}
         </View>
@@ -147,13 +144,17 @@ export default function AddAccountScreen() {
           </View>
         )}
 
-        <Pressable
-          style={[styles.saveButton, busy && styles.disabled]}
+        <GlassButton
+          style={styles.saveButton}
+          intensity={55}
+          borderRadius={radius.md}
           disabled={busy}
           onPress={() => void submit()}
         >
-          <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Create Account'}</Text>
-        </Pressable>
+          <View style={styles.saveButtonContent}>
+            <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Create Account'}</Text>
+          </View>
+        </GlassButton>
 
         <Pressable style={styles.cancelButton} disabled={busy} onPress={() => router.back()}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -171,14 +172,12 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: typography.body,
+    fontWeight: '500',
   },
   container: {
     backgroundColor: colors.background,
     flex: 1,
-  },
-  disabled: {
-    opacity: 0.5,
   },
   fieldError: {
     color: colors.danger,
@@ -201,10 +200,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
     borderRadius: radius.sm,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     color: colors.text,
     fontSize: 16,
     marginBottom: spacing.md,
@@ -214,14 +213,17 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs + 2,
   },
   saveButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 112, 243, 0.22)',
+    borderColor: 'rgba(0, 240, 255, 0.4)',
     marginTop: spacing.md,
+  },
+  saveButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
   },
   saveButtonText: {
@@ -237,28 +239,29 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: spacing.lg,
   },
   typeChip: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    borderWidth: 1,
+    backgroundColor: colors.surfaceGlass,
     flex: 1,
+  },
+  typeChipContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
   },
   typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: 'rgba(0, 112, 243, 0.35)',
+    borderColor: 'rgba(0, 240, 255, 0.45)',
   },
   typeChipText: {
-    color: colors.text,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   typeChipTextSelected: {
     color: colors.primaryText,
+    fontWeight: '600',
   },
   typeRow: {
     flexDirection: 'row',
@@ -266,4 +269,3 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 });
-

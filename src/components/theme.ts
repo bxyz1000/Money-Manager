@@ -1,61 +1,63 @@
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 /**
- * Money Manager design tokens — HYPER-LUMINOUS ELECTRIC GLASS SYSTEM.
+ * Money Manager Design Tokens — FROSTED GLASS & ATMOSPHERIC DARK SYSTEM
  *
- * Single source of truth for color/spacing/radius/typography.
- * Blends obsidian foundation with electric cyan / neon blue / sky glow accents,
- * specular top-lit glass cards, and multi-layered glow depth matching the reference.
+ * True frosted glass aesthetic (translucent fills + BlurView backdrop blur),
+ * hairline subtle borders, soft hero radial glow, and refined typography weights.
  */
 
 export const colors = {
-  // Foundation
-  background: '#04060c',
-  backgroundAlt: '#080c16',
-  surface: 'rgba(255, 255, 255, 0.05)',
-  surfaceSubtle: 'rgba(255, 255, 255, 0.03)',
-  surfaceStrong: 'rgba(15, 22, 38, 0.75)',
-  surfaceHighlight: 'rgba(255, 255, 255, 0.12)',
-  border: 'rgba(255, 255, 255, 0.10)',
-  borderHighlight: 'rgba(255, 255, 255, 0.20)',
-  inputBackground: 'rgba(255, 255, 255, 0.06)',
+  // Deep obsidian foundation
+  background: '#07090e',
+  backgroundAlt: '#0c0f17',
 
-  // Specular Top-Lit Glass Borders & Backlight
-  specularBorder: 'rgba(255, 255, 255, 0.22)',
-  specularBorderTop: 'rgba(0, 240, 255, 0.65)',
-  specularBorderBottom: 'rgba(0, 0, 0, 0.45)',
-  cardGlassBg: 'rgba(12, 18, 32, 0.78)',
+  // Semi-transparent frosted glass fills (8-14% opacity)
+  surfaceGlass: 'rgba(255, 255, 255, 0.08)',
+  surfaceGlassSubtle: 'rgba(255, 255, 255, 0.05)',
+  surfaceGlassStrong: 'rgba(255, 255, 255, 0.12)',
+  surfaceGlassButton: 'rgba(255, 255, 255, 0.10)',
+
+  // Hairline subtle borders (10-15% opacity)
+  border: 'rgba(255, 255, 255, 0.12)',
+  borderSubtle: 'rgba(255, 255, 255, 0.08)',
+  borderHighlight: 'rgba(255, 255, 255, 0.18)',
 
   // Text
   text: '#ffffff',
   textSecondary: '#94a3b8',
   textMuted: '#64748b',
 
-  // Electric Cyan & Neon Blue Accents
-  primary: '#00f0ff', // electric cyan
-  primaryGlow: '#0070f3', // neon electric blue
-  secondaryGlow: '#38bdf8', // sky glow
+  // Compatibility aliases
+  surface: 'rgba(255, 255, 255, 0.08)',
+  surfaceStrong: 'rgba(255, 255, 255, 0.12)',
+  inputBackground: 'rgba(255, 255, 255, 0.06)',
+  secondaryGlow: 'rgba(0, 112, 243, 0.35)',
+
+  // Luminous electric blue & cyan accents
+  primary: '#00f0ff',
+  primaryGlow: '#0070f3',
+  skyGlow: '#38bdf8',
   accentBright: '#e0f7ff',
   electricCyan: '#00f0ff',
   neonBlue: '#0070f3',
-  skyGlow: '#38bdf8',
 
   // Semantic
   success: '#3ddc97',
   danger: '#ff5c7a',
   warning: '#ffc55c',
 
-  // Semantic card tints & glows
-  incomeTint: 'rgba(61, 220, 151, 0.14)',
-  incomeBorder: 'rgba(61, 220, 151, 0.35)',
-  expenseTint: 'rgba(255, 92, 122, 0.14)',
-  expenseBorder: 'rgba(255, 92, 122, 0.35)',
-  transferTint: 'rgba(0, 240, 255, 0.14)',
-  transferBorder: 'rgba(0, 240, 255, 0.35)',
+  // Semantic frosted tints
+  incomeTint: 'rgba(61, 220, 151, 0.12)',
+  incomeBorder: 'rgba(61, 220, 151, 0.25)',
+  expenseTint: 'rgba(255, 92, 122, 0.12)',
+  expenseBorder: 'rgba(255, 92, 122, 0.25)',
+  transferTint: 'rgba(0, 240, 255, 0.12)',
+  transferBorder: 'rgba(0, 240, 255, 0.25)',
 
-  // Hyper-Luminous Ring Accents
+  // Hero Glow
   ringTrack: 'rgba(255, 255, 255, 0.06)',
-  ringGlowInner: 'rgba(0, 240, 255, 0.75)',
+  ringGlowInner: 'rgba(0, 240, 255, 0.70)',
   ringGlowOuter: 'rgba(0, 112, 243, 0.40)',
   ringHighlight: '#ffffff',
 
@@ -69,12 +71,13 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+  sectionGap: 28,
 } as const;
 
-export const radius = { sm: 10, md: 16, lg: 22, xl: 28, pill: 999 } as const;
+export const radius = { sm: 12, md: 18, lg: 24, xl: 30, pill: 999 } as const;
 
 export const typography = {
-  balance: 38,
+  balance: 42,
   heading: 26,
   title: 18,
   body: 15,
@@ -82,25 +85,35 @@ export const typography = {
   caption: 12,
 } as const;
 
-/** Translucent glass card style fragments with specular top edges. */
+/** Frosted glass container style fragments. */
 export const glass = {
   card: {
-    backgroundColor: colors.cardGlassBg,
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    overflow: 'hidden' as const,
   },
   cardStrong: {
-    backgroundColor: colors.surfaceStrong,
-    borderColor: colors.specularBorder,
-    borderWidth: 1,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceGlassStrong,
+    borderColor: colors.borderHighlight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    overflow: 'hidden' as const,
+  },
+  button: {
+    backgroundColor: colors.surfaceGlassButton,
+    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    overflow: 'hidden' as const,
   },
   pill: {
-    backgroundColor: colors.surfaceStrong,
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.pill,
+    overflow: 'hidden' as const,
   },
 } as const;
 
@@ -109,9 +122,9 @@ export function shadowElevation(level: 1 | 2 | 3) {
     return { elevation: level * 2 };
   }
   return {
-    shadowColor: level === 3 ? colors.primaryGlow : '#000000',
-    shadowOpacity: level === 3 ? 0.35 : level * 0.18,
+    shadowColor: '#000000',
+    shadowOpacity: level * 0.15,
     shadowRadius: level * 8,
-    shadowOffset: { width: 0, height: level * 4 },
+    shadowOffset: { width: 0, height: level * 3 },
   };
 }

@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { TransactionListItem } from '@/features/transactions/transaction.service';
 import { formatPaiseAsINR } from '@/utils/money';
-import { colors, radius, shadowElevation, spacing, typography } from './theme';
+import { GlassButton } from './GlassCard';
+import { colors, radius, spacing, typography } from './theme';
 
 interface TransactionRowProps {
   txn: TransactionListItem;
@@ -55,87 +56,76 @@ export function TransactionRow({ txn, onPress, disabled }: TransactionRowProps) 
   const subtitle = [txn.accountName, txn.note].filter(Boolean).join(' · ');
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        shadowElevation(2),
-        pressed && styles.pressed,
-      ]}
+    <GlassButton
       onPress={onPress}
       disabled={disabled}
+      intensity={45}
+      borderRadius={radius.md}
       accessibilityLabel={`${txn.type} ${formatPaiseAsINR(txn.amountPaise)} on ${title}`}
-      accessibilityRole="button"
     >
-      {/* Specular Top-Edge Razor Highlight */}
-      <View style={styles.topHighlightEdge} pointerEvents="none" />
+      <View style={styles.cardContent}>
+        {/* Left Icon Badge with Frosted Tint */}
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: meta.bgColor,
+              borderColor: meta.borderColor,
+            },
+          ]}
+        >
+          <Text style={[styles.avatarGlyph, { color: meta.color }]}>
+            {txn.categoryName ? txn.categoryName.charAt(0).toUpperCase() : meta.glyph}
+          </Text>
+        </View>
 
-      {/* Left Avatar with Colored Glowing Tint */}
-      <View
-        style={[
-          styles.avatar,
-          {
-            backgroundColor: meta.bgColor,
-            borderColor: meta.borderColor,
-          },
-        ]}
-      >
-        <Text style={[styles.avatarGlyph, { color: meta.color }]}>
-          {txn.categoryName ? txn.categoryName.charAt(0).toUpperCase() : meta.glyph}
-        </Text>
-      </View>
+        {/* Center: Title & Subtitle */}
+        <View style={styles.centerInfo}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle || formattedDate}
+          </Text>
+        </View>
 
-      {/* Center: Title & Subtitle */}
-      <View style={styles.centerInfo}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {subtitle || formattedDate}
-        </Text>
+        {/* Right: Amount & Date (Regular/Medium weight) */}
+        <View style={styles.rightInfo}>
+          <Text style={[styles.amount, { color: meta.color }]}>
+            {meta.prefix}
+            {formatPaiseAsINR(txn.amountPaise)}
+          </Text>
+          <Text style={styles.date}>{formattedDate}</Text>
+        </View>
       </View>
-
-      {/* Right: Prominent Amount & Date */}
-      <View style={styles.rightInfo}>
-        <Text style={[styles.amount, { color: meta.color }]}>
-          {meta.prefix}
-          {formatPaiseAsINR(txn.amountPaise)}
-        </Text>
-        <Text style={styles.date}>{formattedDate}</Text>
-      </View>
-    </Pressable>
+    </GlassButton>
   );
 }
 
 const styles = StyleSheet.create({
   amount: {
     fontSize: typography.body + 1,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   avatar: {
     alignItems: 'center',
     borderRadius: radius.pill,
-    borderWidth: 1.5,
-    height: 44,
+    borderWidth: 1,
+    height: 42,
     justifyContent: 'center',
-    width: 44,
+    width: 42,
   },
   avatarGlyph: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  card: {
+  cardContent: {
     alignItems: 'center',
-    backgroundColor: 'rgba(13, 19, 33, 0.82)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: radius.lg,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
-    overflow: 'hidden',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md + 2,
-    position: 'relative',
+    paddingVertical: spacing.md,
   },
   centerInfo: {
     flex: 1,
@@ -147,10 +137,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'right',
   },
-  pressed: {
-    opacity: 0.78,
-    transform: [{ scale: 0.985 }],
-  },
   rightInfo: {
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -158,20 +144,11 @@ const styles = StyleSheet.create({
   subtitle: {
     color: colors.textSecondary,
     fontSize: typography.caption + 1,
-    marginTop: 3,
+    marginTop: 2,
   },
   title: {
     color: colors.text,
     fontSize: typography.body,
-    fontWeight: '700',
-  },
-  topHighlightEdge: {
-    backgroundColor: colors.specularBorderTop,
-    height: 1.5,
-    left: 0,
-    opacity: 0.85,
-    position: 'absolute',
-    right: 0,
-    top: 0,
+    fontWeight: '500',
   },
 });

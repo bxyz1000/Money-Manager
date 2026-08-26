@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors, glass, radius, spacing, typography } from '@/components/theme';
+import { GlassButton, GlassCard } from '@/components/GlassCard';
+import { colors, radius, spacing, typography } from '@/components/theme';
 import { AppAuthError } from '@/features/auth/auth-errors';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useSessionStore } from '@/stores/session.store';
@@ -111,59 +112,63 @@ export default function ProfileScreen() {
       )}
 
       {/* User Card */}
-      <View style={[styles.card, glass.card]}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{avatarChar}</Text>
+      <GlassCard style={styles.card} intensity={50} borderRadius={radius.lg}>
+        <View style={styles.cardContent}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{avatarChar}</Text>
+          </View>
+          <Text style={styles.displayName}>{primaryName}</Text>
+          <Text style={styles.subtext}>
+            {email ? email : isAnonymous ? 'Guest Account' : 'Signed In'}
+          </Text>
+          {!!userId && <Text style={styles.userId}>ID: {userId}</Text>}
         </View>
-        <Text style={styles.displayName}>{primaryName}</Text>
-        <Text style={styles.subtext}>
-          {email ? email : isAnonymous ? 'Guest Account' : 'Signed In'}
-        </Text>
-        {!!userId && <Text style={styles.userId}>ID: {userId}</Text>}
-      </View>
+      </GlassCard>
 
       {/* Account Security / Link Google Section */}
-      <View style={[styles.card, glass.card]}>
-        <Text style={styles.sectionHeading}>Account & Backup</Text>
-        {isAnonymous || !email ? (
-          <View>
-            <Text style={styles.sectionDescription}>
-              You are currently using a local guest profile. Link your Google account to sync
-              transactions across devices and prevent data loss.
-            </Text>
+      <GlassCard style={styles.card} intensity={50} borderRadius={radius.lg}>
+        <View style={styles.cardContent}>
+          <Text style={styles.sectionHeading}>Account & Backup</Text>
+          {isAnonymous || !email ? (
+            <View>
+              <Text style={styles.sectionDescription}>
+                You are currently using a local guest profile. Link your Google account to sync
+                transactions across devices and prevent data loss.
+              </Text>
 
-            <Pressable
-              accessibilityLabel="Link Google Account"
-              style={({ pressed }) => [
-                styles.googleLinkButton,
-                linkingBusy && styles.buttonDisabled,
-                pressed && styles.pressed,
-              ]}
-              disabled={linkingBusy}
-              onPress={() => void handleLinkGoogle()}
-            >
-              {linkingBusy ? (
-                <ActivityIndicator color={colors.text} size="small" />
-              ) : (
-                <View style={styles.googleButtonContent}>
-                  <GoogleIcon />
-                  <Text style={styles.googleButtonText}>Link Google Account</Text>
+              <GlassButton
+                accessibilityLabel="Link Google Account"
+                style={styles.googleLinkButton}
+                intensity={55}
+                borderRadius={radius.md}
+                disabled={linkingBusy}
+                onPress={() => void handleLinkGoogle()}
+              >
+                <View style={styles.googleLinkButtonInner}>
+                  {linkingBusy ? (
+                    <ActivityIndicator color={colors.text} size="small" />
+                  ) : (
+                    <View style={styles.googleButtonContent}>
+                      <GoogleIcon />
+                      <Text style={styles.googleButtonText}>Link Google Account</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.connectedRow}>
-            <View style={styles.connectedBadge}>
-              <Text style={styles.connectedBadgeText}>✓</Text>
+              </GlassButton>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.connectedTitle}>Connected Account</Text>
-              <Text style={styles.connectedEmail}>{email}</Text>
+          ) : (
+            <View style={styles.connectedRow}>
+              <View style={styles.connectedBadge}>
+                <Text style={styles.connectedBadgeText}>✓</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.connectedTitle}>Connected Account</Text>
+                <Text style={styles.connectedEmail}>{email}</Text>
+              </View>
             </View>
-          </View>
-        )}
-      </View>
+          )}
+        </View>
+      </GlassCard>
 
       {/* Sign Out Button */}
       <Pressable
@@ -181,26 +186,24 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: colors.primaryGlow,
+    backgroundColor: 'rgba(0, 112, 243, 0.4)',
+    borderColor: 'rgba(0, 240, 255, 0.3)',
     borderRadius: radius.pill,
-    height: 76,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 72,
     justifyContent: 'center',
     marginBottom: spacing.md,
-    width: 76,
+    width: 72,
   },
   avatarText: {
     color: colors.primaryText,
     fontSize: typography.heading,
-    fontWeight: '700',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+    fontWeight: '600',
   },
   card: {
-    ...glass.card,
-    backgroundColor: colors.surfaceStrong,
-    borderColor: colors.border,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sectionGap - 8,
+  },
+  cardContent: {
     padding: spacing.xl,
   },
   connectedBadge: {
@@ -239,14 +242,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl * 2,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
   displayName: {
     color: colors.text,
     fontSize: typography.title + 2,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
   },
   feedbackBox: {
@@ -255,10 +258,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
-  },
-  feedbackText: {
-    fontSize: typography.body - 1,
-    textAlign: 'center',
   },
   feedbackError: {
     backgroundColor: 'rgba(255, 92, 122, 0.12)',
@@ -278,6 +277,10 @@ const styles = StyleSheet.create({
     fontSize: typography.body - 1,
     textAlign: 'center',
   },
+  feedbackText: {
+    fontSize: typography.body - 1,
+    textAlign: 'center',
+  },
   googleButtonContent: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -286,16 +289,15 @@ const styles = StyleSheet.create({
   googleButtonText: {
     color: colors.text,
     fontSize: typography.body,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   googleLinkButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: spacing.md,
+  },
+  googleLinkButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
   },
   pressed: {
@@ -309,21 +311,21 @@ const styles = StyleSheet.create({
   sectionHeading: {
     color: colors.text,
     fontSize: typography.title,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: spacing.sm,
   },
   signOutButton: {
     alignItems: 'center',
-    borderColor: colors.danger,
+    borderColor: 'rgba(255, 92, 122, 0.4)',
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     marginTop: spacing.sm,
     paddingVertical: 14,
   },
   signOutText: {
     color: colors.danger,
     fontSize: typography.body,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   subtext: {
     color: colors.textSecondary,
@@ -334,7 +336,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.heading,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: spacing.lg,
   },
   userId: {

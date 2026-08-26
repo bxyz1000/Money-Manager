@@ -40,7 +40,9 @@ interface AccountsState {
 
 function errorToMessage(error: unknown): { message: string; code: string } {
   if (error instanceof AccountServiceError) {
-    return { message: error.userMessage, code: error.code };
+    const detailSuffix =
+      error.details && error.details !== error.userMessage ? `\n[${error.details}]` : '';
+    return { message: `${error.userMessage}${detailSuffix}`, code: error.code };
   }
   return { message: 'Something went wrong. Please try again.', code: 'unknown' };
 }

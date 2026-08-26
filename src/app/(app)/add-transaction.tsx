@@ -12,12 +12,11 @@ import {
   View,
 } from 'react-native';
 
+import { GlassButton, GlassCard } from '@/components/GlassCard';
 import { SegmentedControl, type SegmentOption } from '@/components/SegmentedControl';
 import {
   colors,
-  glass,
   radius,
-  shadowElevation,
   spacing,
   typography,
 } from '@/components/theme';
@@ -47,7 +46,6 @@ export default function AddTransactionScreen() {
   const insets = useScreenInsets();
   const params = useLocalSearchParams<{ type?: string }>();
 
-  // Preselect from query parameters if passed from quick actions
   const initialType: TransactionType =
     params.type === 'income' || params.type === 'expense' || params.type === 'transfer'
       ? params.type
@@ -192,22 +190,28 @@ export default function AddTransactionScreen() {
             />
           </View>
 
-          {/* Amount Hero Card */}
-          <View style={[styles.amountCard, glass.card, amountFocused && styles.inputFocused]}>
-            <Text style={styles.amountPrefix}>₹</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-              autoCapitalize="none"
-              value={amountText}
-              onChangeText={setAmountText}
-              onFocus={() => setAmountFocused(true)}
-              onBlur={() => setAmountFocused(false)}
-              editable={!busy}
-            />
-          </View>
+          {/* Frosted Amount Hero Card */}
+          <GlassCard
+            style={[styles.amountCard, amountFocused && styles.amountCardFocused]}
+            intensity={50}
+            borderRadius={radius.lg}
+          >
+            <View style={styles.amountCardContent}>
+              <Text style={styles.amountPrefix}>₹</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+                autoCapitalize="none"
+                value={amountText}
+                onChangeText={setAmountText}
+                onFocus={() => setAmountFocused(true)}
+                onBlur={() => setAmountFocused(false)}
+                editable={!busy}
+              />
+            </View>
+          </GlassCard>
           {!!fieldErrors.amount && <Text style={styles.fieldError}>{fieldErrors.amount}</Text>}
 
           {/* Account Pickers */}
@@ -330,20 +334,19 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* CTA Buttons */}
-          <Pressable
+          {/* Frosted CTA Save Button */}
+          <GlassButton
             accessibilityLabel="Save Transaction"
-            style={({ pressed }) => [
-              styles.saveButton,
-              shadowElevation(2),
-              busy && styles.buttonDisabled,
-              pressed && styles.buttonPressed,
-            ]}
+            style={styles.saveButton}
+            intensity={55}
+            borderRadius={radius.md}
             disabled={busy}
             onPress={() => void submit()}
           >
-            <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Transaction'}</Text>
-          </Pressable>
+            <View style={styles.saveButtonContent}>
+              <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Transaction'}</Text>
+            </View>
+          </GlassButton>
 
           <Pressable
             style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
@@ -367,18 +370,21 @@ function AccountChips(props: {
 }) {
   if (props.accounts.length === 0) {
     return (
-      <View style={[styles.noAccountsCard, glass.card]}>
-        <Text style={styles.noAccountsText}>No active accounts found.</Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.inlineCreateAccountBtn,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={props.onAddAccount}
-        >
-          <Text style={styles.inlineCreateAccountText}>+ Create Account</Text>
-        </Pressable>
-      </View>
+      <GlassCard style={styles.noAccountsCard} intensity={45} borderRadius={radius.md}>
+        <View style={styles.noAccountsContent}>
+          <Text style={styles.noAccountsText}>No active accounts found.</Text>
+          <GlassButton
+            style={styles.inlineCreateAccountBtn}
+            intensity={55}
+            borderRadius={radius.pill}
+            onPress={props.onAddAccount}
+          >
+            <View style={styles.inlineCreateAccountContent}>
+              <Text style={styles.inlineCreateAccountText}>+ Create Account</Text>
+            </View>
+          </GlassButton>
+        </View>
+      </GlassCard>
     );
   }
 
@@ -387,28 +393,28 @@ function AccountChips(props: {
       {props.accounts.map((account) => {
         const selected = props.selectedId === account.id;
         return (
-          <Pressable
+          <GlassButton
             key={account.id}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            style={({ pressed }) => [
-              styles.accountChip,
-              selected ? styles.accountChipSelected : styles.accountChipUnselected,
-              pressed && styles.pressed,
-            ]}
+            style={selected ? styles.accountChipSelected : styles.accountChipUnselected}
+            intensity={selected ? 55 : 35}
+            borderRadius={radius.pill}
             onPress={() => props.onSelect(account.id)}
             disabled={props.disabled}
           >
-            <Text
-              style={[
-                styles.accountChipText,
-                selected && styles.accountChipTextSelected,
-              ]}
-              numberOfLines={1}
-            >
-              {account.name}
-            </Text>
-          </Pressable>
+            <View style={styles.accountChipContent}>
+              <Text
+                style={[
+                  styles.accountChipText,
+                  selected && styles.accountChipTextSelected,
+                ]}
+                numberOfLines={1}
+              >
+                {account.name}
+              </Text>
+            </View>
+          </GlassButton>
         );
       })}
     </View>
@@ -416,47 +422,44 @@ function AccountChips(props: {
 }
 
 const styles = StyleSheet.create({
-  accountChip: {
-    alignItems: 'center',
-    borderRadius: radius.pill,
-    borderWidth: 1,
+  accountChipContent: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   accountChipSelected: {
-    backgroundColor: colors.neonBlue,
-    borderColor: colors.electricCyan,
+    backgroundColor: 'rgba(0, 112, 243, 0.35)',
+    borderColor: 'rgba(0, 240, 255, 0.45)',
   },
   accountChipText: {
     color: colors.textSecondary,
     fontSize: typography.bodySm,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   accountChipTextSelected: {
     color: colors.primaryText,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   accountChipUnselected: {
-    backgroundColor: 'rgba(13, 19, 33, 0.82)',
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlass,
   },
   amountCard: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(13, 19, 33, 0.88)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    flexDirection: 'row',
-    justifyContent: 'center',
     marginBottom: spacing.sm,
     marginTop: spacing.xs,
+  },
+  amountCardContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
+  },
+  amountCardFocused: {
+    borderColor: 'rgba(0, 240, 255, 0.45)',
   },
   amountInput: {
     color: colors.text,
     fontSize: typography.balance,
-    fontWeight: '800',
+    fontWeight: '400',
     letterSpacing: -0.5,
     minWidth: 80,
     paddingVertical: 0,
@@ -465,15 +468,8 @@ const styles = StyleSheet.create({
   amountPrefix: {
     color: colors.electricCyan,
     fontSize: typography.balance,
-    fontWeight: '800',
+    fontWeight: '400',
     marginRight: spacing.xs,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
   },
   cancelButton: {
     alignItems: 'center',
@@ -483,7 +479,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: colors.textSecondary,
     fontSize: typography.body,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   chipsRow: {
     flexDirection: 'row',
@@ -515,21 +511,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inlineCreateAccountBtn: {
-    backgroundColor: colors.neonBlue,
-    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0, 112, 243, 0.25)',
+    borderColor: 'rgba(0, 240, 255, 0.35)',
+  },
+  inlineCreateAccountContent: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
   },
   inlineCreateAccountText: {
     color: colors.primaryText,
     fontSize: typography.bodySm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.surfaceGlass,
     borderColor: colors.border,
     borderRadius: radius.md,
-    borderWidth: 1.2,
+    borderWidth: StyleSheet.hairlineWidth,
     color: colors.text,
     fontSize: typography.body,
     paddingHorizontal: spacing.lg,
@@ -544,13 +542,14 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text,
     fontSize: typography.caption + 1,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs + 2,
   },
   noAccountsCard: {
+    width: '100%',
+  },
+  noAccountsContent: {
     alignItems: 'center',
-    backgroundColor: 'rgba(13, 19, 33, 0.82)',
-    borderColor: colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
@@ -568,17 +567,19 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   saveButton: {
-    alignItems: 'center',
-    backgroundColor: colors.neonBlue,
-    borderRadius: radius.md,
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 112, 243, 0.22)',
+    borderColor: 'rgba(0, 240, 255, 0.4)',
     marginTop: spacing.lg,
+  },
+  saveButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 15,
   },
   saveButtonText: {
     color: colors.primaryText,
     fontSize: typography.body + 1,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   scrollContent: {
     paddingBottom: spacing.xxl * 2,
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.heading,
-    fontWeight: '800',
+    fontWeight: '600',
     marginBottom: spacing.md,
   },
 });
