@@ -1,6 +1,6 @@
 workflows:
-  android-apk:
-    name: Money Manager Android APK
+  android-release:
+    name: Money Manager Production APK
 
     environment:
       node: 20.19.0
@@ -15,13 +15,13 @@ workflows:
 
       - name: Generate Android project
         script: |
-          npx expo prebuild --platform android --non-interactive
+          npx expo prebuild --platform android --clean --non-interactive
 
-      - name: Build APK
+      - name: Build production APK
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
     artifacts:
-      - android/app/build/outputs/apk/debug/app-debug.apk
+      - android/app/build/outputs/apk/release/app-release.apk
