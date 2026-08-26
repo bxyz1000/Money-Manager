@@ -2,25 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { TransactionListItem } from '@/features/transactions/transaction.service';
 import { formatPaiseAsINR } from '@/utils/money';
-import { colors, glass, radius, spacing } from './theme';
-
-/**
- * Premium translucent transaction card shared by Home (recent) and Expenses
- * (full history). Pure presentation — all figures are pre-computed by the
- * service layer; sign/color mapping is presentation, not arithmetic.
- */
-
-function amountPrefix(type: string): string {
-  if (type === 'income') return '+';
-  if (type === 'expense') return '−';
-  return '↔ ';
-}
-
-function amountColor(type: string): string {
-  if (type === 'income') return colors.success;
-  if (type === 'expense') return colors.danger;
-  return colors.accentBright;
-}
+import { colors, radius, shadowElevation, spacing, typography } from './theme';
 
 interface TransactionRowProps {
   txn: TransactionListItem;
@@ -28,96 +10,168 @@ interface TransactionRowProps {
   disabled?: boolean;
 }
 
+function getTransactionMeta(type: string) {
+  switch (type) {
+    case 'income':
+      return {
+        prefix: '+',
+        color: colors.success,
+        bgColor: colors.incomeTint,
+        borderColor: colors.incomeBorder,
+        glyph: '↓',
+      };
+    case 'expense':
+      return {
+        prefix: '−',
+        color: colors.danger,
+        bgColor: colors.expenseTint,
+        borderColor: colors.expenseBorder,
+        glyph: '↑',
+      };
+    case 'transfer':
+    default:
+      return {
+        prefix: '↔ ',
+        color: colors.electricCyan,
+        bgColor: colors.transferTint,
+        borderColor: colors.transferBorder,
+        glyph: '↔',
+      };
+  }
+}
+
 export function TransactionRow({ txn, onPress, disabled }: TransactionRowProps) {
+  const meta = getTransactionMeta(txn.type);
   const title =
     txn.type === 'transfer' && txn.toAccountName
       ? `${txn.accountName} → ${txn.toAccountName}`
       : txn.categoryName ?? txn.type.charAt(0).toUpperCase() + txn.type.slice(1);
 
+  const formattedDate = new Date(txn.occurredAt).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const subtitle = [txn.accountName, txn.note].filter(Boolean).join(' · ');
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.card,
+        shadowElevation(2),
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={`${txn.type} ${formatPaiseAsINR(txn.amountPaise)} on ${title}`}
       accessibilityRole="button"
     >
-      <View style={styles.info}>
+      {/* Specular Top-Edge Razor Highlight */}
+      <View style={styles.topHighlightEdge} pointerEvents="none" />
+
+      {/* Left Avatar with Colored Glowing Tint */}
+      <View
+        style={[
+          styles.avatar,
+          {
+            backgroundColor: meta.bgColor,
+            borderColor: meta.borderColor,
+          },
+        ]}
+      >
+        <Text style={[styles.avatarGlyph, { color: meta.color }]}>
+          {txn.categoryName ? txn.categoryName.charAt(0).toUpperCase() : meta.glyph}
+        </Text>
+      </View>
+
+      {/* Center: Title & Subtitle */}
+      <View style={styles.centerInfo}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {txn.accountName}
-          {!!txn.note ? ` · ${txn.note}` : ''}
-        </Text>
-        <Text style={styles.date}>{new Date(txn.occurredAt).toLocaleDateString()}</Text>
-        <Text style={[styles.amount, { color: amountColor(txn.type) }]}>
-          {amountPrefix(txn.type)}
-          {formatPaiseAsINR(txn.amountPaise)}
+          {subtitle || formattedDate}
         </Text>
       </View>
-      <View style={[styles.badge, { borderColor: amountColor(txn.type) }]}>
-        <Text style={[styles.badgeText, { color: amountColor(txn.type) }]}>
-          {badgeGlyph(txn.categoryName ?? txn.type)}
+
+      {/* Right: Prominent Amount & Date */}
+      <View style={styles.rightInfo}>
+        <Text style={[styles.amount, { color: meta.color }]}>
+          {meta.prefix}
+          {formatPaiseAsINR(txn.amountPaise)}
         </Text>
+        <Text style={styles.date}>{formattedDate}</Text>
       </View>
     </Pressable>
   );
 }
 
-/** Single-character badge: category initial when present, else flow glyph. */
-function badgeGlyph(source: string): string {
-  if (source === 'income') return '↓';
-  if (source === 'expense') return '↑';
-  if (source === 'transfer') return '↔';
-  return source.charAt(0).toUpperCase();
-}
-
 const styles = StyleSheet.create({
   amount: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: typography.body + 1,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
-  badge: {
+  avatar: {
     alignItems: 'center',
     borderRadius: radius.pill,
-    borderWidth: 1,
-    height: 36,
+    borderWidth: 1.5,
+    height: 44,
     justifyContent: 'center',
-    width: 36,
+    width: 44,
   },
-  badgeText: {
+  avatarGlyph: {
     fontSize: 16,
     fontWeight: '700',
   },
   card: {
-    ...glass.card,
     alignItems: 'center',
+    backgroundColor: 'rgba(13, 19, 33, 0.82)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: radius.lg,
+    borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
+    overflow: 'hidden',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
+    position: 'relative',
+  },
+  centerInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   date: {
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: typography.caption,
     marginTop: 2,
-  },
-  info: {
-    flex: 1,
+    textAlign: 'right',
   },
   pressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.78,
+    transform: [{ scale: 0.985 }],
+  },
+  rightInfo: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   subtitle: {
     color: colors.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: typography.caption + 1,
+    marginTop: 3,
   },
   title: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
+  topHighlightEdge: {
+    backgroundColor: colors.specularBorderTop,
+    height: 1.5,
+    left: 0,
+    opacity: 0.85,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
 });

@@ -1,21 +1,13 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Text } from 'react-native';
+import { Platform } from 'react-native';
 
-import { colors } from '@/components/theme';
+import { TabIcon } from '@/components/TabIcon';
+import { colors, typography } from '@/components/theme';
 
 /**
- * Authenticated bottom navigation: Home · Expenses · [+ Add] · Accounts ·
- * Profile. The center action opens the existing add-transaction modal —
- * it does not duplicate any creation logic.
+ * Authenticated bottom navigation: Home · Expenses · [+ Add] · Accounts · Profile.
+ * Features dedicated Ionicons vector icons with active indicators and elevated center button.
  */
-
-function AddIcon() {
-  return (
-    <Text style={{ color: colors.primary, fontSize: 26, fontWeight: '300', marginTop: -2 }}>
-      +
-    </Text>
-  );
-}
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -26,20 +18,46 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.accentBright,
         tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: typography.caption,
+          fontWeight: '600',
+          marginTop: -2,
+        },
         tabBarStyle: {
           backgroundColor: '#0a0c14',
           borderTopColor: colors.border,
           borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingTop: 8,
         },
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="expenses" options={{ title: 'Expenses' }} />
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="home" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="expenses"
+        options={{
+          title: 'Expenses',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="expenses" color={color} focused={focused} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="add-center"
         options={{
           title: 'Add',
-          tabBarIcon: AddIcon,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="add" color={color} focused={focused} />
+          ),
           tabBarActiveTintColor: colors.primary,
         }}
         listeners={() => ({
@@ -50,8 +68,24 @@ export default function TabsLayout() {
           },
         })}
       />
-      <Tabs.Screen name="accounts" options={{ title: 'Accounts' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      <Tabs.Screen
+        name="accounts"
+        options={{
+          title: 'Accounts',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="accounts" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="profile" color={color} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

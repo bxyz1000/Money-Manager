@@ -24,13 +24,19 @@ interface SessionState {
   userId: string | null;
   /** May be shown in the protected placeholder ("signed in as …"). */
   email: string | null;
+  /** Display name entered during anonymous sign-in or fetched from OAuth provider. */
+  displayName: string | null;
+  /** True when the session belongs to an anonymous user. */
+  isAnonymous: boolean;
 
   /** Restores the persisted session and subscribes to future changes. Idempotent. */
   initialize: () => Promise<void>;
 
+  signInAnonymously: (name: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  linkGoogleAccount: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -41,6 +47,8 @@ function applyUser(user: SafeUserInfo | null) {
     status: user ? ('authenticated' as const) : ('unauthenticated' as const),
     userId: user?.userId ?? null,
     email: user?.email ?? null,
+    displayName: user?.displayName ?? null,
+    isAnonymous: user?.isAnonymous ?? false,
   };
 }
 
@@ -48,6 +56,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   status: 'initializing',
   userId: null,
   email: null,
+  displayName: null,
+  isAnonymous: false,
 
   initialize: async () => {
     // Attach the auth-state listener exactly once; it keeps the store in sync
@@ -66,7 +76,13 @@ export const useSessionStore = create<SessionState>((set) => ({
       // out rather than blocking the app. Technical detail goes to the dev
       // logger only.
       const mapped = mapAuthError(restoreError);
-      set({ status: 'unauthenticated', userId: null, email: null });
+      set({
+        status: 'unauthenticated',
+        userId: null,
+        email: null,
+        displayName: null,
+        isAnonymous: false,
+      });
       logDev('session restore failed', { code: mapped.code });
     }
   },
@@ -76,6 +92,10 @@ export const useSessionStore = create<SessionState>((set) => ({
    * never via supabase-js directly. Store state converges automatically
    * through the onAuthStateChange listener after each action resolves.
    */
+  signInAnonymously: async (name) => {
+    await authService.signInAnonymously(name);
+  },
+
   signInWithPassword: async (email, password) => {
     await authService.signInWithPassword(email, password);
   },
@@ -86,6 +106,10 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   signInWithGoogle: async () => {
     await authService.signInWithGoogle();
+  },
+
+  linkGoogleAccount: async () => {
+    await authService.linkGoogleAccount();
   },
 
   signOut: async () => {

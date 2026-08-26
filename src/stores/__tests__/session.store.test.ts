@@ -3,18 +3,25 @@
  *
  * The auth service is fully mocked — no network, no SecureStore, no Supabase.
  * The registered auth-state listener is captured so tests can drive real
- * transitions: restore-on-launch, sign-out, and OAuth-style sign-in events.
+ * transitions: restore-on-launch, anonymous sign-in, sign-out, and OAuth-style sign-in events.
  *
  * Each test loads a FRESH store module via jest.isolateModules because the
  * store intentionally subscribes to auth changes exactly once per process
  * (module-level guard); isolation gives every test its own subscription.
  */
 
-type SafeUser = { userId: string; email: string | null };
+type SafeUser = {
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+  isAnonymous: boolean;
+};
 type Listener = (user: SafeUser | null) => void;
 
 const mockedRestoreSession = jest.fn<Promise<SafeUser | null>, []>();
 const mockedSignOut = jest.fn<Promise<void>, []>();
+const mockedSignInAnonymously = jest.fn<Promise<void>, [string]>();
+const mockedLinkGoogleAccount = jest.fn<Promise<void>, []>();
 const listenerRef: { current: Listener | null } = { current: null };
 let subscribeCount = 0;
 
@@ -22,9 +29,11 @@ jest.mock('@/services/auth.service', () => ({
   authService: {
     restoreSession: (...args: []) => mockedRestoreSession(...args),
     signOut: (...args: []) => mockedSignOut(...args),
+    signInAnonymously: (...args: [string]) => mockedSignInAnonymously(...args),
     signInWithPassword: jest.fn(),
     signUp: jest.fn(),
     signInWithGoogle: jest.fn(),
+    linkGoogleAccount: (...args: []) => mockedLinkGoogleAccount(...args),
     getCurrentUserId: jest.fn(),
     onSessionChange: (listener: Listener) => {
       subscribeCount += 1;
@@ -58,6 +67,8 @@ describe('session.store', () => {
     expect(state.status).toBe('initializing');
     expect(state.userId).toBeNull();
     expect(state.email).toBeNull();
+    expect(state.displayName).toBeNull();
+    expect(state.isAnonymous).toBe(false);
   });
 
   it('transitions to authenticated when a persisted session is restored', async () => {
@@ -65,6 +76,8 @@ describe('session.store', () => {
     mockedRestoreSession.mockResolvedValueOnce({
       userId: 'u-1',
       email: 'user@example.com',
+      displayName: 'Alex Doe',
+      isAnonymous: false,
     });
 
     await store.getState().initialize();
@@ -73,6 +86,8 @@ describe('session.store', () => {
     expect(state.status).toBe('authenticated');
     expect(state.userId).toBe('u-1');
     expect(state.email).toBe('user@example.com');
+    expect(state.displayName).toBe('Alex Doe');
+    expect(state.isAnonymous).toBe(false);
   });
 
   it('transitions to unauthenticated when no session exists', async () => {
@@ -95,6 +110,8 @@ describe('session.store', () => {
     expect(state.status).toBe('unauthenticated');
     expect(state.userId).toBeNull();
     expect(state.email).toBeNull();
+    expect(state.displayName).toBeNull();
+    expect(state.isAnonymous).toBe(false);
   });
 
   it('subscribes to auth-state changes exactly once despite repeated init', async () => {
@@ -113,6 +130,8 @@ describe('session.store', () => {
     mockedRestoreSession.mockResolvedValueOnce({
       userId: 'u-1',
       email: 'user@example.com',
+      displayName: 'Alex',
+      isAnonymous: false,
     });
     await store.getState().initialize();
     expect(store.getState().status).toBe('authenticated');
@@ -121,6 +140,28 @@ describe('session.store', () => {
 
     expect(store.getState().status).toBe('unauthenticated');
     expect(store.getState().email).toBeNull();
+    expect(store.getState().displayName).toBeNull();
+  });
+
+  it('anonymous sign-in event flips an unauthenticated store to authenticated', async () => {
+    const store = loadFreshStore().useSessionStore;
+    mockedRestoreSession.mockResolvedValueOnce(null);
+    await store.getState().initialize();
+    expect(store.getState().status).toBe('unauthenticated');
+
+    listenerRef.current?.({
+      userId: 'anon-1',
+      email: null,
+      displayName: 'Sam',
+      isAnonymous: true,
+    });
+
+    const state = store.getState();
+    expect(state.status).toBe('authenticated');
+    expect(state.userId).toBe('anon-1');
+    expect(state.email).toBeNull();
+    expect(state.displayName).toBe('Sam');
+    expect(state.isAnonymous).toBe(true);
   });
 
   it('OAuth-style sign-in event flips an unauthenticated store to authenticated', async () => {
@@ -129,12 +170,33 @@ describe('session.store', () => {
     await store.getState().initialize();
     expect(store.getState().status).toBe('unauthenticated');
 
-    listenerRef.current?.({ userId: 'g-1', email: 'gmail-user@gmail.com' });
+    listenerRef.current?.({
+      userId: 'g-1',
+      email: 'gmail-user@gmail.com',
+      displayName: 'Google User',
+      isAnonymous: false,
+    });
 
     const state = store.getState();
     expect(state.status).toBe('authenticated');
     expect(state.userId).toBe('g-1');
     expect(state.email).toBe('gmail-user@gmail.com');
+    expect(state.displayName).toBe('Google User');
+    expect(state.isAnonymous).toBe(false);
+  });
+
+  it('signInAnonymously delegates to the auth service', async () => {
+    const store = loadFreshStore().useSessionStore;
+    mockedSignInAnonymously.mockResolvedValueOnce(undefined);
+    await store.getState().signInAnonymously('Sam');
+    expect(mockedSignInAnonymously).toHaveBeenCalledWith('Sam');
+  });
+
+  it('linkGoogleAccount delegates to the auth service', async () => {
+    const store = loadFreshStore().useSessionStore;
+    mockedLinkGoogleAccount.mockResolvedValueOnce(undefined);
+    await store.getState().linkGoogleAccount();
+    expect(mockedLinkGoogleAccount).toHaveBeenCalledTimes(1);
   });
 
   it('signOut action delegates to the service', async () => {
@@ -144,5 +206,3 @@ describe('session.store', () => {
     expect(mockedSignOut).toHaveBeenCalledTimes(1);
   });
 });
-
-

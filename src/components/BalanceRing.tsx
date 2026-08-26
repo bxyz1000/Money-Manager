@@ -1,67 +1,63 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 
-import { colors, glass, radius, spacing, typography } from './theme';
-
-/**
- * Luminous balance ring — the dashboard's financial instrument.
- *
- * Built from layered SVG strokes (no bitmap/video assets):
- *   1. dark track ring
- *   2. wide soft outer glow (violet, breathing)
- *   3. medium inner glow (blue)
- *   4. main gradient progress arc (blue → violet, rounded cap, dash-reveal)
- *   5. bright highlight edge riding the same arc
- *
- * Animation (RN Animated only — GPU-friendly opacity/transform):
- *   - reveal: arc sweeps from empty to `fraction` on mount / value change
- *   - breathing: slow sinusoidal glow-opacity loop, ~6s period
- *   - count-up: balance text counts from zero to the new value over ~1.2s
- *
- * Driven entirely by props derived from real data
- * (savingsFraction over authoritative balances/month totals).
- */
+import { colors, glass, radius, shadowElevation, spacing, typography } from './theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const SIZE = 232;
+const SIZE = 248;
 const STROKE_WIDTH = 14;
-const RADIUS = (SIZE - STROKE_WIDTH * 2 - 24) / 2;
+const RADIUS = (SIZE - STROKE_WIDTH * 2 - 28) / 2;
 const CENTER = SIZE / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 interface BalanceRingProps {
   /** 0..1 progress of the luminous arc. */
   fraction: number;
-  /** Center amount, formatted for display (e.g. "₹12,345"). */
+  /** Center amount, formatted for display (e.g. "₹15,325"). */
   centerLabel: string;
+  /** Optional callback when the + Add pill at the bottom of the ring is tapped */
+  onAddPress?: () => void;
 }
 
-export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
+export function BalanceRing({ fraction, centerLabel, onAddPress }: BalanceRingProps) {
   const clamped = Math.min(1, Math.max(0, fraction));
 
   const [sweep] = useState(() => new Animated.Value(0));
   const [breathe] = useState(() => new Animated.Value(0));
+  const [spin] = useState(() => new Animated.Value(0));
   const [entrance] = useState(() => new Animated.Value(0));
   const [counter] = useState(() => new Animated.Value(0));
 
   const [countText, setCountText] = useState('₹0');
 
-  // Animate toward the numeric rupee value embedded in the formatted label so
-  // the counter always lands exactly on utils/money-formatted output.
   const targetRupees = useMemo(() => {
     const digits = centerLabel.replace(/[^\d.-]/g, '');
     const value = Number.parseFloat(digits);
     return Number.isFinite(value) ? value : 0;
   }, [centerLabel]);
 
+  // Entrance and count-up animation
   useEffect(() => {
     const reveal = Animated.timing(sweep, {
       toValue: clamped,
       duration: 1400,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // strokeDashoffset animates on the JS thread
+      useNativeDriver: false,
     });
     const popIn = Animated.timing(entrance, {
       toValue: 1,
@@ -89,26 +85,41 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
     };
   }, [clamped, counter, sweep, entrance, targetRupees]);
 
+  // Continuous pulsating breathing loop
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, {
           toValue: 1,
-          duration: 3000,
+          duration: 2600,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false, // SVG animated nodes are JS-driven
+          useNativeDriver: false,
         }),
         Animated.timing(breathe, {
           toValue: 0,
-          duration: 3000,
+          duration: 2600,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false, // SVG animated nodes are JS-driven
+          useNativeDriver: false,
         }),
       ]),
     );
     loop.start();
     return () => loop.stop();
   }, [breathe]);
+
+  // Continuous rotating vortex aura
+  useEffect(() => {
+    const spinLoop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 12000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    spinLoop.start();
+    return () => spinLoop.stop();
+  }, [spin]);
 
   const dashOffset = sweep.interpolate({
     inputRange: [0, 1],
@@ -117,16 +128,22 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
 
   const outerGlowOpacity = breathe.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.35, 0.75],
+    outputRange: [0.45, 0.9],
   });
-  const haloScale = breathe.interpolate({
+
+  const auraScale = breathe.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.04],
+    outputRange: [1, 1.05],
+  });
+
+  const spinRotation = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
   });
 
   const cardTranslateY = entrance.interpolate({
     inputRange: [0, 1],
-    outputRange: [18, 0],
+    outputRange: [20, 0],
   });
 
   return (
@@ -136,34 +153,72 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
         { opacity: entrance, transform: [{ translateY: cardTranslateY }] },
       ]}
       accessibilityRole="image"
-      accessibilityLabel={`Total balance ${centerLabel}. Savings rate ${Math.round(
+      accessibilityLabel={`Wallet balance ${centerLabel}. Savings rate ${Math.round(
         clamped * 100,
       )} percent.`}
     >
-      <Animated.View style={{ transform: [{ scale: haloScale }] }}>
+      {/* Background Hyper-Glow Atmospheric Flare */}
+      <Animated.View
+        style={[
+          styles.ambientGlow,
+          {
+            opacity: outerGlowOpacity,
+            transform: [{ scale: auraScale }],
+          },
+        ]}
+      />
+
+      {/* Continuous Rotating Aura Layer */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.rotatingAuraContainer,
+          { transform: [{ rotate: spinRotation }] },
+        ]}
+      >
         <Svg width={SIZE} height={SIZE}>
           <Defs>
-            <LinearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={colors.primaryGlow} />
-              <Stop offset="0.55" stopColor={colors.primary} />
-              <Stop offset="1" stopColor={colors.secondaryGlow} />
+            <RadialGradient id="rotatingFlare" cx="0.8" cy="0.2" r="0.6">
+              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="0.45" />
+              <Stop offset="0.6" stopColor={colors.neonBlue} stopOpacity="0.2" />
+              <Stop offset="1" stopColor="transparent" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.55} fill="url(#rotatingFlare)" />
+        </Svg>
+      </Animated.View>
+
+      {/* Main Multi-Layer SVG Instrument */}
+      <Animated.View style={{ transform: [{ scale: auraScale }] }}>
+        <Svg width={SIZE} height={SIZE}>
+          <Defs>
+            {/* Primary Electric Cyan Gradient */}
+            <LinearGradient id="electricCyanGrad" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="1" />
+              <Stop offset="0.4" stopColor={colors.skyGlow} stopOpacity="1" />
+              <Stop offset="0.85" stopColor={colors.neonBlue} stopOpacity="1" />
+              <Stop offset="1" stopColor="#0038a8" stopOpacity="0.8" />
             </LinearGradient>
-            <LinearGradient id="highlightGradient" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={colors.ringHighlight} stopOpacity="0.9" />
-              <Stop offset="1" stopColor={colors.accentBright} stopOpacity="0.4" />
+
+            {/* Specular White Arc Highlight */}
+            <LinearGradient id="specularHighlight" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
+              <Stop offset="0.4" stopColor={colors.electricCyan} stopOpacity="0.8" />
+              <Stop offset="1" stopColor="transparent" stopOpacity="0" />
             </LinearGradient>
-            <RadialGradient id="haloGradient" cx="0.5" cy="0.5" r="0.5">
-              <Stop offset="0" stopColor={colors.ringGlowInner} stopOpacity="0.4" />
-              <Stop offset="0.7" stopColor={colors.ringGlowOuter} stopOpacity="0.22" />
-              <Stop offset="1" stopColor={colors.ringGlowOuter} stopOpacity="0" />
+
+            {/* Hyper-Luminous Bloom Halo */}
+            <RadialGradient id="innerBloom" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor={colors.electricCyan} stopOpacity="0.32" />
+              <Stop offset="0.6" stopColor={colors.neonBlue} stopOpacity="0.18" />
+              <Stop offset="1" stopColor="transparent" stopOpacity="0" />
             </RadialGradient>
           </Defs>
 
-          {/* Atmospheric bloom halo behind the ring */}
-          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.85} fill="url(#haloGradient)" />
-          <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill="rgba(93,110,255,0.05)" />
+          {/* Atmospheric bloom circle */}
+          <Circle cx={CENTER} cy={CENTER} r={RADIUS * 1.6} fill="url(#innerBloom)" />
 
-          {/* Dark track */}
+          {/* Dark Glass Track Ring */}
           <Circle
             cx={CENTER}
             cy={CENTER}
@@ -173,13 +228,13 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
             fill="none"
           />
 
-          {/* Soft outer violet glow (breathing) */}
+          {/* Outer Wide Cyan Neon Aura (Breathing) */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke={colors.ringGlowOuter}
-            strokeWidth={STROKE_WIDTH + 18}
+            stroke={colors.neonBlue}
+            strokeWidth={STROKE_WIDTH + 24}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -187,26 +242,26 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
             opacity={outerGlowOpacity}
           />
 
-          {/* Medium blue inner glow */}
+          {/* Medium Electric Cyan Glow */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke={colors.ringGlowInner}
-            strokeWidth={STROKE_WIDTH + 7}
+            stroke={colors.electricCyan}
+            strokeWidth={STROKE_WIDTH + 10}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={dashOffset}
-            opacity={0.65}
+            opacity={0.8}
           />
 
-          {/* Main luminous gradient arc */}
+          {/* Core Luminous Arc */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke="url(#ringGradient)"
+            stroke="url(#electricCyanGrad)"
             strokeWidth={STROKE_WIDTH}
             fill="none"
             strokeLinecap="round"
@@ -214,13 +269,13 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
             strokeDashoffset={dashOffset}
           />
 
-          {/* Bright highlight edge */}
+          {/* Specular White Razor Edge */}
           <AnimatedCircle
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke="url(#highlightGradient)"
-            strokeWidth={4}
+            stroke="url(#specularHighlight)"
+            strokeWidth={4.5}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -229,18 +284,37 @@ export function BalanceRing({ fraction, centerLabel }: BalanceRingProps) {
         </Svg>
       </Animated.View>
 
+      {/* Center Balance Value & Caption */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <View style={styles.centerContent}>
-          <Text style={styles.centerCaption}>TOTAL BALANCE</Text>
           <Text style={styles.centerAmount}>{countText}</Text>
+          <Text style={styles.centerCaption}>Wallet Balance</Text>
         </View>
       </View>
 
-      {/* Savings-rate glass chip (real data: month net / month income) */}
-      <View style={[styles.rateChip, glass.card]} pointerEvents="none">
+      {/* Floating Savings Rate Glass Chip (Top-Right) */}
+      <View style={[styles.rateChip, glass.cardStrong, shadowElevation(2)]} pointerEvents="none">
         <Text style={styles.rateChipValue}>{Math.round(clamped * 100)}% saved</Text>
-        <Text style={styles.rateChipCaption}>this month</Text>
+        <Text style={styles.rateChipCaption}>last 30 days</Text>
       </View>
+
+      {/* Nestled + Add Pill Button at Bottom Center (Reference Style) */}
+      {onAddPress && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.addPill,
+            glass.cardStrong,
+            shadowElevation(3),
+            pressed && styles.addPillPressed,
+          ]}
+          onPress={onAddPress}
+          accessibilityLabel="Add transaction"
+          accessibilityRole="button"
+        >
+          <Text style={styles.addPillIcon}>+</Text>
+          <Text style={styles.addPillText}>Add</Text>
+        </Pressable>
+      )}
     </Animated.View>
   );
 }
@@ -259,48 +333,94 @@ function formatRupeeGrouped(rupees: number): string {
 }
 
 const styles = StyleSheet.create({
+  addPill: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    borderColor: colors.specularBorderTop,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    bottom: 2,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 8,
+    position: 'absolute',
+    zIndex: 10,
+  },
+  addPillIcon: {
+    color: colors.electricCyan,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  addPillPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.96 }],
+  },
+  addPillText: {
+    color: colors.text,
+    fontSize: typography.bodySm,
+    fontWeight: '700',
+  },
+  ambientGlow: {
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    borderRadius: 130,
+    height: 180,
+    position: 'absolute',
+    width: 180,
+  },
   centerAmount: {
     color: colors.text,
-    fontSize: typography.balance - 8,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: typography.balance,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    textShadowColor: 'rgba(0, 240, 255, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
   centerCaption: {
     color: colors.textSecondary,
-    fontSize: 11,
-    letterSpacing: 2,
-    marginBottom: 6,
+    fontSize: typography.caption + 1,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   centerContent: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
+    paddingBottom: 16,
   },
   rateChip: {
     alignItems: 'center',
+    backgroundColor: 'rgba(12, 18, 32, 0.85)',
+    borderColor: 'rgba(0, 240, 255, 0.3)',
     borderRadius: radius.md,
+    borderWidth: 1,
     paddingHorizontal: spacing.md + 2,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs + 3,
     position: 'absolute',
-    right: -6,
-    top: 18,
+    right: -8,
+    top: 14,
   },
   rateChipCaption: {
     color: colors.textSecondary,
     fontSize: 10,
+    marginTop: 1,
   },
   rateChipValue: {
-    color: colors.accentBright,
+    color: colors.electricCyan,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  rotatingAuraContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wrapper: {
     alignItems: 'center',
-    height: SIZE,
+    height: SIZE + 16,
     justifyContent: 'center',
+    position: 'relative',
     width: SIZE,
   },
 });
-
-
-

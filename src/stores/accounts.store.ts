@@ -29,6 +29,7 @@ interface AccountsState {
   errorMessage: string | null;
 
   load: () => Promise<void>;
+  reset: () => void;
   createAccount: (input: AccountInput) => Promise<CreateAccountResult>;
   updateAccount: (
     id: string,
@@ -49,8 +50,15 @@ export const useAccountsStore = create<AccountsState>((set) => ({
   status: 'idle',
   errorMessage: null,
 
+  reset: () => {
+    set({ accounts: [], status: 'idle', errorMessage: null });
+  },
+
   load: async () => {
-    set({ status: useAccountsStore.getState().accounts.length > 0 ? 'ready' : 'loading' });
+    set({
+      status: useAccountsStore.getState().accounts.length > 0 ? 'ready' : 'loading',
+      errorMessage: null,
+    });
     try {
       const accounts = await accountService.listActiveAccounts();
       set({ accounts, status: 'ready', errorMessage: null });

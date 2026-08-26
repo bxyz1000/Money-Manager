@@ -173,6 +173,14 @@ export default function EditAccountScreen() {
         >
           <Text style={styles.archiveButtonText}>Archive Account</Text>
         </Pressable>
+
+        <Pressable
+          style={styles.cancelButton}
+          disabled={busy}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -325,6 +333,16 @@ const styles = StyleSheet.create({
   },
   typeChipTextSelected: {
     color: colors.primaryText,
+  },
+  cancelButton: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  cancelButtonText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   typeRow: {
     flexDirection: 'row',

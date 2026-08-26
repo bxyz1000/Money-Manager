@@ -20,19 +20,10 @@ import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useAccountsStore } from '@/stores/accounts.store';
 import { useSessionStore } from '@/stores/session.store';
 import { useTransactionsStore } from '@/stores/transactions.store';
+import { SegmentedControl, type SegmentOption } from '@/components/SegmentedControl';
 import { colors, radius, spacing } from '@/components/theme';
 
-/**
- * Edit / delete an existing ledger entry.
- *
- * The full edited entity is submitted and re-validated as a whole by the
- * service, so changing type (e.g. expense→transfer), legs or amount always
- * re-applies transfer-leg rules. Because a transfer is a single atomic row,
- * every edit is one atomic statement — derived balances/aggregates update
- * automatically.
- */
-
-const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
+const TYPE_OPTIONS: SegmentOption<TransactionType>[] = [
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expense' },
   { value: 'transfer', label: 'Transfer' },
@@ -201,22 +192,13 @@ function formatRupeesForInput(paise: number): string {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Edit Transaction</Text>
 
-        <View style={styles.typeRow}>
-          {TYPE_OPTIONS.map((option) => {
-            const selected = type === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                style={[styles.typeChip, selected && styles.typeChipSelected]}
-                onPress={() => setType(option.value)}
-                disabled={busy}
-              >
-                <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.segmentedWrapper}>
+          <SegmentedControl
+            options={TYPE_OPTIONS}
+            selected={type}
+            onSelect={setType}
+            disabled={busy}
+          />
         </View>
 
         <Text style={styles.label}>Amount</Text>
@@ -323,6 +305,14 @@ function formatRupeesForInput(paise: number): string {
           onPress={confirmDelete}
         >
           <Text style={styles.deleteButtonText}>Delete Transaction</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.cancelButton}
+          disabled={busy}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -439,6 +429,19 @@ const styles = StyleSheet.create({
   },
   typeChipTextSelected: {
     color: colors.primaryText,
+  },
+  cancelButton: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  cancelButtonText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  segmentedWrapper: {
+    marginBottom: spacing.lg,
   },
   typeRow: {
     flexDirection: 'row',

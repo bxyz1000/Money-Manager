@@ -34,6 +34,7 @@ interface TransactionsState {
   monthNetPaise: number;
 
   load: () => Promise<void>;
+  reset: () => void;
   createTransaction: (input: TransactionInput) => Promise<ActionResult>;
   updateTransaction: (id: string, input: TransactionInput) => Promise<ActionResult>;
   deleteTransaction: (id: string) => Promise<ActionResult>;
@@ -68,10 +69,22 @@ export const useTransactionsStore = create<TransactionsState>((set) => ({
   monthExpensePaise: 0,
   monthNetPaise: 0,
 
+  reset: () => {
+    set({
+      transactions: [],
+      status: 'idle',
+      errorMessage: null,
+      monthIncomePaise: 0,
+      monthExpensePaise: 0,
+      monthNetPaise: 0,
+    });
+  },
+
   load: async () => {
     set({
       status:
         useTransactionsStore.getState().transactions.length > 0 ? 'ready' : 'loading',
+      errorMessage: null,
     });
     try {
       const [transactions, totals] = await Promise.all([

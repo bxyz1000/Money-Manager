@@ -2,6 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,24 +12,23 @@ import {
   View,
 } from 'react-native';
 
-import type { TransactionType } from '@/types/domain';
-import { parseAmountToPaise } from '@/utils/money';
+import { SegmentedControl, type SegmentOption } from '@/components/SegmentedControl';
+import {
+  colors,
+  glass,
+  radius,
+  shadowElevation,
+  spacing,
+  typography,
+} from '@/components/theme';
 import { CategoryServiceError, ensureCategory } from '@/features/categories/category.service';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useAccountsStore } from '@/stores/accounts.store';
 import { useTransactionsStore } from '@/stores/transactions.store';
-import { colors, radius, spacing } from '@/components/theme';
+import type { TransactionType } from '@/types/domain';
+import { parseAmountToPaise } from '@/utils/money';
 
-/**
- * Add Transaction modal — Income / Expense / Transfer.
- *
- * Amount parsing goes strictly through utils/money.parseAmountToPaise.
- * Category is optional free text resolved idempotently server-side
- * (create-or-get). Transfers show source + destination pickers and no
- * category field. No opening-balance or fake data paths exist here.
- */
-
-const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
+const TYPE_OPTIONS: SegmentOption<TransactionType>[] = [
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expense' },
   { value: 'transfer', label: 'Transfer' },
@@ -46,7 +47,7 @@ export default function AddTransactionScreen() {
   const insets = useScreenInsets();
   const params = useLocalSearchParams<{ type?: string }>();
 
-  // Home quick actions pass ?type=income|expense|transfer to preselect.
+  // Preselect from query parameters if passed from quick actions
   const initialType: TransactionType =
     params.type === 'income' || params.type === 'expense' || params.type === 'transfer'
       ? params.type
@@ -65,15 +66,26 @@ export default function AddTransactionScreen() {
   const [note, setNote] = useState('');
   const [dateText, setDateText] = useState(todayIsoDate());
 
+  const [amountFocused, setAmountFocused] = useState(false);
+  const [categoryFocused, setCategoryFocused] = useState(false);
+  const [dateFocused, setDateFocused] = useState(false);
+  const [noteFocused, setNoteFocused] = useState(false);
+
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (accountsStatus === 'idle') {
+    if (accountsStatus === 'idle' || accountsStatus === 'error') {
       void loadAccounts();
     }
   }, [accountsStatus, loadAccounts]);
+
+  const selectedAccountId = accountId ?? accounts[0]?.id ?? null;
+  const selectedToAccountId =
+    type === 'transfer'
+      ? toAccountId ?? accounts.find((a) => a.id !== selectedAccountId)?.id ?? null
+      : null;
 
   async function submit(): Promise<void> {
     setFieldErrors({});
@@ -85,18 +97,23 @@ export default function AddTransactionScreen() {
     try {
       amountPaise = parseAmountToPaise(amountText);
     } catch {
-      nextErrors.amount = 'Enter a valid amount, e.g. 500 · 1,250.50';
+      nextErrors.amount = 'Enter a valid amount, e.g. 500 or 1,250.50';
     }
 
-    if (!accountId || !accounts.some((a) => a.id === accountId)) {
+    if (!selectedAccountId || !accounts.some((a) => a.id === selectedAccountId)) {
       nextErrors.accountId =
         type === 'transfer' ? 'Choose the source account.' : 'Choose an account.';
     }
-    if (type === 'transfer' && !toAccountId) {
+    if (type === 'transfer' && !selectedToAccountId) {
       nextErrors.toAccountId = 'Choose the destination account.';
     }
-    if (type === 'transfer' && accountId && toAccountId && accountId === toAccountId) {
-      nextErrors.toAccountId = 'Accounts must be different.';
+    if (
+      type === 'transfer' &&
+      selectedAccountId &&
+      selectedToAccountId &&
+      selectedAccountId === selectedToAccountId
+    ) {
+      nextErrors.toAccountId = 'Source and destination accounts must be different.';
     }
     if (dateText.trim().length === 0 || Number.isNaN(new Date(dateText).getTime())) {
       nextErrors.date = 'Enter a valid date (YYYY-MM-DD).';
@@ -108,7 +125,6 @@ export default function AddTransactionScreen() {
 
     setBusy(true);
     try {
-      // Optional category: resolved idempotently server-side (create-or-get).
       let categoryId: string | null = null;
       if (type !== 'transfer' && categoryName.trim().length > 0) {
         try {
@@ -126,8 +142,8 @@ export default function AddTransactionScreen() {
       const result = await createTransaction({
         type,
         amountPaise,
-        accountId: accountId as string,
-        toAccountId: type === 'transfer' ? toAccountId : null,
+        accountId: selectedAccountId as string,
+        toAccountId: type === 'transfer' ? selectedToAccountId : null,
         categoryId,
         note: note.trim().length > 0 ? note : null,
         occurredAt: new Date(`${dateText}T12:00:00`).toISOString(),
@@ -138,7 +154,7 @@ export default function AddTransactionScreen() {
         return;
       }
 
-      Alert.alert('Saved', 'Transaction recorded.');
+      Alert.alert('Saved', 'Transaction recorded successfully.');
       router.back();
     } finally {
       setBusy(false);
@@ -147,139 +163,197 @@ export default function AddTransactionScreen() {
 
   return (
     <View style={[styles.container, insets]}>
-      <Stack.Screen options={{ presentation: 'modal', title: '' }} />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Add Transaction</Text>
-
-        <View style={styles.typeRow}>
-          {TYPE_OPTIONS.map((option) => {
-            const selected = type === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                style={[styles.typeChip, selected && styles.typeChipSelected]}
-                onPress={() => setType(option.value)}
-                disabled={busy}
-              >
-                <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.label}>Amount</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="₹0"
-          placeholderTextColor={colors.textSecondary}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-          value={amountText}
-          onChangeText={setAmountText}
-          editable={!busy}
-        />
-        {!!fieldErrors.amount && <Text style={styles.fieldError}>{fieldErrors.amount}</Text>}
-
-        {type === 'transfer' ? (
-          <>
-            <Text style={styles.label}>From</Text>
-            <AccountChips
-              accounts={accounts}
-              selectedId={accountId}
-              onSelect={setAccountId}
-              disabled={busy}
-            />
-            {!!fieldErrors.accountId && (
-              <Text style={styles.fieldError}>{fieldErrors.accountId}</Text>
-            )}
-            <Text style={styles.label}>To</Text>
-            <AccountChips
-              accounts={accounts}
-              selectedId={toAccountId}
-              onSelect={setToAccountId}
-              disabled={busy}
-            />
-            {!!fieldErrors.toAccountId && (
-              <Text style={styles.fieldError}>{fieldErrors.toAccountId}</Text>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.label}>Account</Text>
-            <AccountChips
-              accounts={accounts}
-              selectedId={accountId}
-              onSelect={setAccountId}
-              disabled={busy}
-            />
-            {!!fieldErrors.accountId && (
-              <Text style={styles.fieldError}>{fieldErrors.accountId}</Text>
-            )}
-          </>
-        )}
-
-        {type !== 'transfer' && (
-          <>
-            <Text style={styles.label}>Category (optional)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Groceries, Salary"
-              placeholderTextColor={colors.textSecondary}
-              value={categoryName}
-              onChangeText={setCategoryName}
-              editable={!busy}
-              maxLength={60}
-            />
-            {!!fieldErrors.category && (
-              <Text style={styles.fieldError}>{fieldErrors.category}</Text>
-            )}
-          </>
-        )}
-
-        <Text style={styles.label}>Date</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={colors.textSecondary}
-          autoCapitalize="none"
-          value={dateText}
-          onChangeText={setDateText}
-          editable={!busy}
-        />
-        {!!fieldErrors.date && <Text style={styles.fieldError}>{fieldErrors.date}</Text>}
-
-        <Text style={styles.label}>Note (optional)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Add a note"
-          placeholderTextColor={colors.textSecondary}
-          value={note}
-          onChangeText={setNote}
-          editable={!busy}
-          multiline
-          maxLength={500}
-        />
-
-        {!!formError && (
-          <View style={styles.formErrorBox}>
-            <Text style={styles.fieldError}>{formError}</Text>
-          </View>
-        )}
-
-        <Pressable
-          style={[styles.saveButton, busy && styles.disabled]}
-          disabled={busy}
-          onPress={() => void submit()}
+      <Stack.Screen
+        options={{
+          presentation: 'modal',
+          title: 'Add Transaction',
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+        }}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Transaction'}</Text>
-        </Pressable>
+          <Text style={styles.title}>New Transaction</Text>
 
-        <Pressable style={styles.cancelButton} disabled={busy} onPress={() => router.back()}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </Pressable>
-      </ScrollView>
+          {/* Animated Segmented Selector */}
+          <View style={styles.segmentedWrapper}>
+            <SegmentedControl
+              options={TYPE_OPTIONS}
+              selected={type}
+              onSelect={setType}
+              disabled={busy}
+            />
+          </View>
+
+          {/* Amount Hero Card */}
+          <View style={[styles.amountCard, glass.card, amountFocused && styles.inputFocused]}>
+            <Text style={styles.amountPrefix}>₹</Text>
+            <TextInput
+              style={styles.amountInput}
+              placeholder="0"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="numeric"
+              autoCapitalize="none"
+              value={amountText}
+              onChangeText={setAmountText}
+              onFocus={() => setAmountFocused(true)}
+              onBlur={() => setAmountFocused(false)}
+              editable={!busy}
+            />
+          </View>
+          {!!fieldErrors.amount && <Text style={styles.fieldError}>{fieldErrors.amount}</Text>}
+
+          {/* Account Pickers */}
+          {type === 'transfer' ? (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.label}>Source Account (From)</Text>
+              <AccountChips
+                accounts={accounts}
+                selectedId={selectedAccountId}
+                onSelect={setAccountId}
+                disabled={busy}
+                onAddAccount={() => router.push('/(app)/add-account')}
+              />
+              {!!fieldErrors.accountId && (
+                <Text style={styles.fieldError}>{fieldErrors.accountId}</Text>
+              )}
+
+              <Text style={[styles.label, { marginTop: spacing.md }]}>
+                Destination Account (To)
+              </Text>
+              <AccountChips
+                accounts={accounts}
+                selectedId={selectedToAccountId}
+                onSelect={setToAccountId}
+                disabled={busy}
+                onAddAccount={() => router.push('/(app)/add-account')}
+              />
+              {!!fieldErrors.toAccountId && (
+                <Text style={styles.fieldError}>{fieldErrors.toAccountId}</Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.label}>Account</Text>
+              <AccountChips
+                accounts={accounts}
+                selectedId={selectedAccountId}
+                onSelect={setAccountId}
+                disabled={busy}
+                onAddAccount={() => router.push('/(app)/add-account')}
+              />
+              {!!fieldErrors.accountId && (
+                <Text style={styles.fieldError}>{fieldErrors.accountId}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Category Input (for Income & Expense) */}
+          {type !== 'transfer' && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.label}>Category (optional)</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  categoryFocused && styles.inputFocused,
+                  busy && styles.inputDisabled,
+                ]}
+                placeholder="e.g. Groceries, Dining, Salary"
+                placeholderTextColor={colors.textSecondary}
+                value={categoryName}
+                onChangeText={setCategoryName}
+                onFocus={() => setCategoryFocused(true)}
+                onBlur={() => setCategoryFocused(false)}
+                editable={!busy}
+                maxLength={60}
+              />
+              {!!fieldErrors.category && (
+                <Text style={styles.fieldError}>{fieldErrors.category}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Date Input */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.label}>Date</Text>
+            <TextInput
+              style={[
+                styles.input,
+                dateFocused && styles.inputFocused,
+                busy && styles.inputDisabled,
+              ]}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="none"
+              value={dateText}
+              onChangeText={setDateText}
+              onFocus={() => setDateFocused(true)}
+              onBlur={() => setDateFocused(false)}
+              editable={!busy}
+            />
+            {!!fieldErrors.date && <Text style={styles.fieldError}>{fieldErrors.date}</Text>}
+          </View>
+
+          {/* Note Input */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.label}>Note (optional)</Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.noteInput,
+                noteFocused && styles.inputFocused,
+                busy && styles.inputDisabled,
+              ]}
+              placeholder="What was this for?"
+              placeholderTextColor={colors.textSecondary}
+              value={note}
+              onChangeText={setNote}
+              onFocus={() => setNoteFocused(true)}
+              onBlur={() => setNoteFocused(false)}
+              editable={!busy}
+              multiline
+              maxLength={500}
+            />
+          </View>
+
+          {/* Form Error Banner */}
+          {!!formError && (
+            <View style={styles.formErrorBox}>
+              <Text style={styles.formErrorText}>{formError}</Text>
+            </View>
+          )}
+
+          {/* CTA Buttons */}
+          <Pressable
+            accessibilityLabel="Save Transaction"
+            style={({ pressed }) => [
+              styles.saveButton,
+              shadowElevation(2),
+              busy && styles.buttonDisabled,
+              pressed && styles.buttonPressed,
+            ]}
+            disabled={busy}
+            onPress={() => void submit()}
+          >
+            <Text style={styles.saveButtonText}>{busy ? 'Saving…' : 'Save Transaction'}</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
+            disabled={busy}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -289,26 +363,49 @@ function AccountChips(props: {
   selectedId: string | null;
   onSelect: (id: string) => void;
   disabled: boolean;
+  onAddAccount: () => void;
 }) {
   if (props.accounts.length === 0) {
     return (
-      <Text style={styles.hint}>
-        No active accounts. Create one from the Accounts screen first.
-      </Text>
+      <View style={[styles.noAccountsCard, glass.card]}>
+        <Text style={styles.noAccountsText}>No active accounts found.</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.inlineCreateAccountBtn,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={props.onAddAccount}
+        >
+          <Text style={styles.inlineCreateAccountText}>+ Create Account</Text>
+        </Pressable>
+      </View>
     );
   }
+
   return (
-    <View style={styles.typeRow}>
+    <View style={styles.chipsRow}>
       {props.accounts.map((account) => {
         const selected = props.selectedId === account.id;
         return (
           <Pressable
             key={account.id}
-            style={[styles.typeChip, selected && styles.typeChipSelected]}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            style={({ pressed }) => [
+              styles.accountChip,
+              selected ? styles.accountChipSelected : styles.accountChipUnselected,
+              pressed && styles.pressed,
+            ]}
             onPress={() => props.onSelect(account.id)}
             disabled={props.disabled}
           >
-            <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+            <Text
+              style={[
+                styles.accountChipText,
+                selected && styles.accountChipTextSelected,
+              ]}
+              numberOfLines={1}
+            >
               {account.name}
             </Text>
           </Pressable>
@@ -319,107 +416,185 @@ function AccountChips(props: {
 }
 
 const styles = StyleSheet.create({
+  accountChip: {
+    alignItems: 'center',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 10,
+  },
+  accountChipSelected: {
+    backgroundColor: colors.neonBlue,
+    borderColor: colors.electricCyan,
+  },
+  accountChipText: {
+    color: colors.textSecondary,
+    fontSize: typography.bodySm,
+    fontWeight: '600',
+  },
+  accountChipTextSelected: {
+    color: colors.primaryText,
+    fontWeight: '700',
+  },
+  accountChipUnselected: {
+    backgroundColor: 'rgba(13, 19, 33, 0.82)',
+    borderColor: colors.border,
+  },
+  amountCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 19, 33, 0.88)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  amountInput: {
+    color: colors.text,
+    fontSize: typography.balance,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    minWidth: 80,
+    paddingVertical: 0,
+    textAlign: 'center',
+  },
+  amountPrefix: {
+    color: colors.electricCyan,
+    fontSize: typography.balance,
+    fontWeight: '800',
+    marginRight: spacing.xs,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
   cancelButton: {
     alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     paddingVertical: spacing.md,
   },
   cancelButtonText: {
     color: colors.textSecondary,
+    fontSize: typography.body,
     fontWeight: '600',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   container: {
     backgroundColor: colors.background,
     flex: 1,
   },
-  disabled: {
-    opacity: 0.5,
-  },
   fieldError: {
     color: colors.danger,
-    fontSize: 13,
+    fontSize: typography.caption,
     marginBottom: spacing.sm,
-    marginTop: -spacing.xs,
+    marginTop: 2,
   },
   formErrorBox: {
-    backgroundColor: 'rgba(255,92,122,0.12)',
+    backgroundColor: 'rgba(255, 92, 122, 0.12)',
     borderColor: colors.danger,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
-    marginBottom: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  hint: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: 16,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingVertical: spacing.sm + 2,
+  },
+  formErrorText: {
+    color: colors.danger,
+    fontSize: typography.bodySm,
+    textAlign: 'center',
+  },
+  inlineCreateAccountBtn: {
+    backgroundColor: colors.neonBlue,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+  },
+  inlineCreateAccountText: {
+    color: colors.primaryText,
+    fontSize: typography.bodySm,
+    fontWeight: '700',
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1.2,
+    color: colors.text,
+    fontSize: typography.body,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 13,
+  },
+  inputDisabled: {
+    opacity: 0.6,
+  },
+  inputFocused: {
+    borderColor: colors.electricCyan,
   },
   label: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: typography.caption + 1,
     fontWeight: '600',
     marginBottom: spacing.xs + 2,
   },
+  noAccountsCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 19, 33, 0.82)',
+    borderColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  noAccountsText: {
+    color: colors.textSecondary,
+    fontSize: typography.bodySm,
+  },
+  noteInput: {
+    minHeight: 72,
+    textAlignVertical: 'top',
+  },
+  pressed: {
+    opacity: 0.75,
+  },
   saveButton: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.neonBlue,
     borderRadius: radius.md,
-    marginTop: spacing.md,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+    paddingVertical: 15,
   },
   saveButtonText: {
     color: colors.primaryText,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: typography.body + 1,
+    fontWeight: '700',
   },
   scrollContent: {
-    paddingBottom: spacing.xl * 2,
+    paddingBottom: spacing.xxl * 2,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
-  title: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: '700',
+  sectionContainer: {
+    marginBottom: spacing.md,
+  },
+  segmentedWrapper: {
     marginBottom: spacing.lg,
   },
-  typeChip: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    flex: 1,
-    paddingVertical: 12,
-  },
-  typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  typeChipText: {
+  title: {
     color: colors.text,
-    fontWeight: '600',
-  },
-  typeChipTextSelected: {
-    color: colors.primaryText,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    fontSize: typography.heading,
+    fontWeight: '800',
     marginBottom: spacing.md,
   },
 });
-
